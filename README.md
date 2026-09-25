@@ -1,5 +1,7 @@
 # ttsopensource
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Open-source, GPU-powered, real-time multilingual HLS video translation and
 dubbing. Same shape of problem as the sibling `ttsengine` project
 (`C:\apps\mobile\nodejs\ttsengine`), but built entirely on self-hostable
