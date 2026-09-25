@@ -12,9 +12,21 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
+# Python via deadsnakes, not Ubuntu 22.04's default repo: the latter can
+# resolve to a Python 3.11 patch predating 3.11.4, which is missing
+# `sys.get_int_max_str_digits` — a stdlib function torch._dynamo's polyfills
+# module references unconditionally on import. That gap doesn't surface until
+# something imports transformers (which pulls in torch._dynamo transitively),
+# where it presents as a confusing AttributeError deep in a third-party
+# polyfill, not an obvious "wrong Python version" error. Confirmed via a real
+# deployment run, not assumed. deadsnakes tracks upstream CPython patch
+# releases faithfully, so this sidesteps the issue rather than pinning around it.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3.11 python3-pip python3.11-venv \
-        ffmpeg curl ca-certificates \
+        software-properties-common ffmpeg curl ca-certificates \
+    && add-apt-repository -y ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        python3.11 python3.11-venv python3.11-distutils \
+    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 \
     && rm -rf /var/lib/apt/lists/*
 
 # Piper TTS binary (self-contained, no Python deps) — see
