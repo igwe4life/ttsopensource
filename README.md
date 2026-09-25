@@ -142,10 +142,18 @@ were actually run and checked in the process:
   `en_US-lessac-medium.onnx` + its config JSON downloaded successfully. A
   `set -e` bug that would have crash-looped the whole GPU service on a
   transient network blip during startup was found and fixed the same way.
-  Docker itself isn't available in the environment this was built in, so the
-  full `docker compose up --build` (image builds, container networking,
-  healthcheck) has not been run — that's the one Docker-specific thing left
-  to confirm on a real machine.
+  A real CI run (`.github/workflows/docker.yml`, the "Docker Build" badge
+  above) then actually built both images: `orchestrator` built clean;
+  `gpu-service` initially failed with `OSError: [Errno 28] No space left on
+  device` partway through `pip install` — torch pulls in the full CUDA
+  toolkit as pip dependencies (several GB of `nvidia-*` wheels), which
+  overflowed the GitHub-hosted runner's default free disk. Fixed by freeing
+  preinstalled toolchains (.NET, Android SDK, GHC) the job never uses before
+  building — not a Dockerfile bug, but a real constraint worth knowing if you
+  build this image in another disk-constrained CI environment. Full `docker
+  compose up` (container networking, healthcheck, actually running the
+  containers) still hasn't been exercised — that's the remaining
+  Docker-specific thing to confirm on a real machine.
 - ⚠️ `gpu-service` (Python/FastAPI/torch/transformers/faster-whisper/
   coqui-tts) was written and reviewed carefully but **could not be executed**
   in the environment this was built in (no GPU, no Python interpreter beyond
