@@ -1,0 +1,50 @@
+name: Docker Build
+
+# Builds (not runs) both Dockerfiles to verify they actually build — this is
+# the one thing the images could NOT be verified for during development (no
+# Docker available in that environment). Does not need GPU hardware; `docker
+# build` alone doesn't run any CUDA code, just resolves layers/dependencies.
+on:
+  push:
+    branches: [master]
+    paths:
+      - "gpu-service/**"
+      - "orchestrator/**"
+      - "language-registry/**"
+      - "docker-compose*.yml"
+      - ".github/workflows/docker.yml"
+  pull_request:
+    paths:
+      - "gpu-service/**"
+      - "orchestrator/**"
+      - "language-registry/**"
+      - "docker-compose*.yml"
+      - ".github/workflows/docker.yml"
+  workflow_dispatch:
+
+jobs:
+  build-gpu-service:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build gpu-service image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: gpu-service/Dockerfile
+          push: false
+          tags: ttsopensource-gpu-service:ci
+
+  build-orchestrator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build orchestrator image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: orchestrator/Dockerfile
+          push: false
+          tags: ttsopensource-orchestrator:ci

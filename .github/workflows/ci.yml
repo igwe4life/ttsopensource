@@ -1,0 +1,53 @@
+name: CI
+
+# Lint + the parts of the test suite that need neither a GPU nor
+# torch/transformers installed (gpu-service/tests/test_registry.py only
+# touches app/config.py and app/registry/language_registry.py). Full model
+# inference tests need real GPU hardware and aren't run here — see
+# README.md's "What's been verified vs. what hasn't".
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  registry-and-orchestrator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Regenerate language registry and verify it matches what's committed
+        run: |
+          node scripts/build-registry.js
+          git diff --exit-code -- language-registry/languages.json
+
+      - name: Install orchestrator dependencies
+        run: npm install
+        working-directory: orchestrator
+
+      - name: Syntax-check every orchestrator source file
+        run: |
+          for f in $(find src -name "*.js"); do
+            node --check "$f" || exit 1
+          done
+        working-directory: orchestrator
+
+  gpu-service-registry-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install lightweight test dependencies (no torch/transformers needed for these tests)
+        run: pip install pytest pytest-asyncio
+
+      - name: Run gpu-service registry tests
+        run: pytest tests/ -v
+        working-directory: gpu-service

@@ -1,6 +1,16 @@
 # ttsopensource
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/igwe4life/ttsopensource/actions/workflows/ci.yml/badge.svg)](https://github.com/igwe4life/ttsopensource/actions/workflows/ci.yml)
+[![Docker Build](https://github.com/igwe4life/ttsopensource/actions/workflows/docker.yml/badge.svg)](https://github.com/igwe4life/ttsopensource/actions/workflows/docker.yml)
+[![Languages](https://img.shields.io/badge/languages-106-blue.svg)](language-registry/languages.json)
+
+> The CI/Docker badges link to this **private** repo's Actions tab — they'll
+> only render for people with repo access (that's a GitHub limitation for
+> private repos, not a bug). The languages badge is a static snapshot of
+> `language-registry/languages.json`'s `total_languages` — see
+> [docs/LANGUAGE_COVERAGE.md](docs/LANGUAGE_COVERAGE.md) for the live
+> breakdown by status.
 
 Open-source, GPU-powered, real-time multilingual HLS video translation and
 dubbing. Same shape of problem as the sibling `ttsengine` project
