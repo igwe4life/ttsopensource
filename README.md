@@ -5,45 +5,10 @@
 [![Docker Build](https://github.com/igwe4life/ttsopensource/actions/workflows/docker.yml/badge.svg)](https://github.com/igwe4life/ttsopensource/actions/workflows/docker.yml)
 [![Languages](https://img.shields.io/badge/languages-106-blue.svg)](language-registry/languages.json)
 
-> The CI/Docker badges link to this **private** repo's Actions tab — they'll
-> only render for people with repo access (that's a GitHub limitation for
-> private repos, not a bug). The languages badge is a static snapshot of
-> `language-registry/languages.json`'s `total_languages` — see
-> [docs/LANGUAGE_COVERAGE.md](docs/LANGUAGE_COVERAGE.md) for the live
-> breakdown by status.
+> The languages badge is a static snapshot of
+> `language-registry/languages.json`'s `total_languages`.
 
-Open-source, GPU-powered, real-time multilingual HLS video translation and
-dubbing. Same shape of problem as the sibling `ttsengine` project
-(`C:\apps\mobile\nodejs\ttsengine`), but built entirely on self-hostable
-models instead of Azure — this is a separate, independent codebase; nothing
-here imports from or modifies that project.
-
-```
-Live HLS Video
-      ↓
-FFmpeg audio extraction + VAD-based segmentation      (orchestrator, Node)
-      ↓
-Whisper / faster-whisper                              (gpu-service, Python/GPU)
-      ↓
-NLLB-200 / OPUS-MT / MarianMT translation                    "
-      ↓
-Piper / Coqui XTTS / MMS-TTS                                  "
-      ↓
-Mix + remux + per-language HLS output                 (orchestrator)
-```
-
-## Two independently-deployable pieces
-
-| Directory | Runtime | Job |
-|---|---|---|
-| [`gpu-service/`](gpu-service/) | Python, FastAPI, GPU | STT/translation/TTS behind `SpeechToTextEngine` / `TranslationEngine` / `TextToSpeechEngine` abstractions. Deploys to RunPod, Hyperstack, or any CUDA box — see `deploy/`. |
-| [`orchestrator/`](orchestrator/) | Node.js, no GPU needed | Polls the source HLS stream, calls `gpu-service` over HTTP once per segment for whichever languages have active viewers, writes per-language output HLS. Reuses several files verbatim/adapted from the old `ttsengine` (ffmpeg helpers, HLS polling, remux) — see the "Reused from ttsengine" comments at the top of each. |
-| [`language-registry/`](language-registry/) | data | The single source of truth both services read — see its README for why it's generated (`scripts/build-registry.js`), not hand-written. |
-
-Full design rationale: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-Language coverage specifics and a real verification finding:
-[docs/LANGUAGE_COVERAGE.md](docs/LANGUAGE_COVERAGE.md). Path to 500-1000+
-languages: [docs/ROADMAP_500_1000_LANGUAGES.md](docs/ROADMAP_500_1000_LANGUAGES.md).
+See `docs/` for design notes.
 
 ## Quickstart — Docker (recommended, works with or without a GPU)
 
