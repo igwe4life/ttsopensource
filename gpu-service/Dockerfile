@@ -29,17 +29,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 \
     && rm -rf /var/lib/apt/lists/*
 
-# Piper TTS binary (self-contained, no Python deps) — see
-# https://github.com/rhasspy/piper/releases. Release tags have NO "v" prefix
-# (verified against the GitHub API before hardcoding this — a "v2023..." URL
-# 404s). Pin a version explicitly for reproducible builds.
-ARG PIPER_VERSION=2023.11.14-2
-RUN curl -L -o /tmp/piper.tar.gz \
-      "https://github.com/rhasspy/piper/releases/download/${PIPER_VERSION}/piper_linux_x86_64.tar.gz" \
-    && tar -xzf /tmp/piper.tar.gz -C /opt \
-    && ln -s /opt/piper/piper /usr/local/bin/piper \
-    && rm /tmp/piper.tar.gz
-
 WORKDIR /srv/gpu-service
 
 COPY gpu-service/requirements.txt .

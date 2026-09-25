@@ -19,8 +19,13 @@ sacremoses>=0.1.1
 
 # TTS
 coqui-tts>=0.24        # XTTS v2 (`import TTS` — package name is coqui-tts on PyPI)
-# Piper itself runs as an external binary (see deploy/docker/Dockerfile.gpu-service)
-# rather than a Python dependency — install via the piper-tts release binary.
+# Piper's own Python package (piper1-gpl project) — loads the ONNX voice
+# model ONCE and keeps it resident for repeated synthesize() calls, unlike
+# the old standalone-binary approach (subprocess spawn + full model reload
+# on every single call, which saturated CPU at just 3 concurrent languages
+# in real testing). Bundles espeak-ng for phonemization, no separate system
+# package needed.
+piper-tts>=1.2
 
 # Shared
 torch>=2.2             # install the CUDA build matching your image (see Dockerfile)

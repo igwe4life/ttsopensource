@@ -1,104 +1,143 @@
-// Adapted from ttsengine/src/pipeline.js. Structurally the same shutdown/
-// polling shape; RTMP pusher + reporter replaced by the segment queue's HLS
-// playlist writers and (optionally) the same admin-telemetry reporter
-// pattern, now pointed at the GPU service's /health instead of Azure.
+// Rewritten for always-on RTMP broadcast (see
+// C:\Users\USER\.claude\plans\tranquil-stirring-pixel.md). All configured
+// languages are generated continuously regardless of viewers — there is no
+// browser UI and no per-viewer activation. Video is never re-encoded or
+// stored here: each language's own ffmpeg (rtmpLanguagePusher.js) pulls the
+// source directly and mixes in that language's live translated audio.
+//
+// ONE shared GPU connection, transcribing once and fanning out to every
+// active language (not one connection per language): a per-language-
+// decoupled version was tried live and made things WORSE once the target
+// list was narrowed to only the languages with working TTS voices (es/fr/de)
+// — three independent connections meant three independent transcriptions of
+// the same audio hitting the GPU simultaneously every chunk (3x the actual
+// GPU work), which pushed every language into timeouts that didn't happen
+// under the shared/single-transcription model. Per-language decoupling only
+// earns its cost (extra transcriptions) when the target list mixes fast and
+// permanently-broken languages — with a curated, all-working list, sharing
+// one connection is both simpler and lighter on the GPU.
+import { captureAudio } from './live/audioCapture.js';
+import { createChunker } from './live/chunker.js';
+import { createGpuStreamClient } from './live/gpuStreamClient.js';
+import { createLiveAudioMixer } from './live/liveAudioMixer.js';
+import { createRtmpLanguagePusher } from './live/rtmpLanguagePusher.js';
+import { resampleWavToPcm } from './live/resample.js';
 import { config } from './config.js';
-import { ensureDir } from './utils/fs.js';
-import { pollLivePlaylist, resolveMediaPlaylist } from './live/playlistPoller.js';
-import { createSegmentQueue } from './live/segmentQueue.js';
 
 /**
- * Runs ONE source HLS stream through the dubbing pipeline, producing
- * multiple OUTPUT HLS streams (one per active target language) under
- * `<workDir>/<hlsOutput.dir>/<lang>/playlist.m3u8`.
- *
- * Unlike the old engine (one process per target language, one RTMP key
- * each), this is ONE process for the whole source stream — languages are
- * added/removed dynamically as viewers subscribe/unsubscribe via
- * sharedPipelineManager, without restarting anything (section 5/6).
- *
  * @param {object} opts
- * @param {string} opts.input     source HLS URL (master or media playlist)
- * @param {object} opts.sharedPipeline  from sharedPipelineManager.js
- * @param {string} [opts.workDir] scratch dir (default ./work/ingest)
- * @param {object} [opts.rtmpManager]  from rtmpOutputManager.js — omit for
- *   HLS-only operation; when given, any language it manages ALSO gets a
- *   persistent RTMP push each segment (see segmentQueue.js).
- * Never throws past startup: a source that's briefly unreachable (DNS hiccup,
- * origin restart) retries in the background instead of taking the HTTP API
- * down with it — index.js starts the HTTP server unconditionally, and
- * `/health` reflects source-connection state via `queue`-less `status()`.
- *
- * @returns {{ queue: object, shutdown: (signal:string) => Promise<void>, status: () => object }}
+ * @param {string} opts.input  source HLS URL — read once here (16kHz mono,
+ *   for STT) and again independently by each language's own RTMP pusher
+ *   (full video + original audio).
+ * @returns {{ shutdown: () => Promise<void>, status: () => object }}
  */
-export function runDubbingPipeline(opts) {
-  const { input, sharedPipeline, rtmpManager = null } = opts;
-  if (!input) throw new Error('Pipeline needs an `input` HLS URL.');
-
-  const workDir = opts.workDir || 'work/ingest';
-  const ingestDir = `${workDir}/segments`;
-
-  console.log('[pipeline] ttsopensource live dubbing');
+export function runDubbingPipeline({ input }) {
+  console.log('[pipeline] ttsopensource always-on RTMP broadcast');
   console.log(`[pipeline]   source: ${input}`);
-  console.log(`[pipeline]   deadline: ${config.segmentDeadlineMs}ms, concurrency: ${config.pipelineConcurrency}`);
-  if (rtmpManager) console.log(`[pipeline]   RTMP targets: ${rtmpManager.languages().join(', ') || '(none yet)'}`);
+  console.log(`[pipeline]   languages: ${config.targetLanguages.join(', ')}`);
+  console.log(`[pipeline]   rtmp base: ${config.rtmp.baseUrl} (key prefix: "${config.rtmp.keyPrefix}")`);
 
-  const queue = createSegmentQueue({ workRoot: workDir, sharedPipeline, rtmpManager });
+  const chunker = createChunker({ chunkSeconds: config.chunkSeconds, overlapMs: config.chunkOverlapMs });
 
-  let shuttingDown = false;
-  let connected = false;
-  let lastError = null;
-
-  const shutdown = async (signal) => {
-    if (shuttingDown) return;
-    shuttingDown = true;
-    console.log(`\n[pipeline] ${signal} received, shutting down…`);
-    await queue.drain();
-    if (rtmpManager) await rtmpManager.shutdown();
-  };
-
-  async function resolveWithRetry() {
-    let attempt = 0;
-    while (!shuttingDown) {
-      try {
-        const mediaUrl = await resolveMediaPlaylist(input);
-        if (mediaUrl !== input) console.log(`[pipeline]   media playlist: ${mediaUrl}`);
-        return mediaUrl;
-      } catch (err) {
-        lastError = err.message;
-        const backoff = Math.min(2000 * 2 ** attempt++, 30000);
-        console.warn(`[pipeline] source unreachable (${err.message}); retrying in ${backoff}ms`);
-        await new Promise((r) => setTimeout(r, backoff));
-      }
-    }
-    return null;
+  // One live mixer + one persistent RTMP pusher per language, created
+  // immediately at startup — always-on, no viewer-driven activation.
+  const mixers = new Map();
+  const pushers = new Map();
+  for (const lang of config.targetLanguages) {
+    const rtmpUrl = `${config.rtmp.baseUrl.replace(/\/+$/, '')}/${config.rtmp.keyFor(lang)}`;
+    const mixer = createLiveAudioMixer({ sampleRate: config.mixSampleRate, maxQueuedSeconds: config.mixMaxQueuedSeconds });
+    const pusher = createRtmpLanguagePusher({
+      sourceUrl: input,
+      rtmpUrl,
+      sampleRate: config.mixSampleRate,
+      duckLevel: config.duckLevel,
+    });
+    mixer.pump((bytes) => pusher.write(bytes));
+    mixers.set(lang, mixer);
+    pushers.set(lang, pusher);
+    console.log(`[pipeline]   [${lang}] -> ${rtmpUrl}`);
   }
 
-  (async () => {
-    await ensureDir(workDir);
-    await ensureDir(ingestDir);
+  let seq = 0;
+  let connected = false;
+  // Bounded queue: if chunks arrive faster than the shared GPU connection
+  // can process them, drop the OLDEST queued chunk rather than let latency
+  // grow without bound.
+  const MAX_QUEUE_DEPTH = 2;
+  const pendingQueue = [];
+  let draining = false;
 
-    const mediaUrl = await resolveWithRetry();
-    if (!mediaUrl) return; // shut down while still retrying
-
-    connected = true;
-    let count = 0;
-    try {
-      for await (const seg of pollLivePlaylist(mediaUrl, ingestDir)) {
-        count++;
-        console.log(`[pipeline] segment ${seg.seq} ingested (${seg.duration}s)`);
-        queue.enqueue(seg).catch((err) => {
-          console.error(`[pipeline] seg ${seg.seq} enqueue error: ${err.message}`);
-        });
+  const gpuClient = createGpuStreamClient({
+    url: config.gpu.wsUrl,
+    apiKey: config.gpu.apiKey,
+    timeoutMs: config.chunkTimeoutMs,
+    onLanguageResult: async (lang, meta, audio) => {
+      if (meta.ok && audio) {
+        console.log(`[pipeline] [${lang}] "${(meta.text || '').slice(0, 60)}" (${audio.length}B)`);
+        try {
+          const pcm = await resampleWavToPcm(audio, config.mixSampleRate);
+          mixers.get(lang)?.enqueue(pcm);
+        } catch (err) {
+          console.warn(`[pipeline] [${lang}] resample failed: ${err.message}`);
+        }
+      } else if (!meta.ok) {
+        console.warn(`[pipeline] [${lang}] ${meta.error || 'no result'}`);
       }
-    } catch (err) {
-      lastError = err.message;
-      console.error(`[pipeline] poller error: ${err.message}`);
-    }
-    connected = false;
-    console.log(`[pipeline] source ended after ${count} segments; draining…`);
-    await queue.drain();
-  })();
+    },
+  });
 
-  return { queue, shutdown, status: () => ({ connected, source: input, lastError }) };
+  async function drainQueue() {
+    if (draining) return;
+    draining = true;
+    try {
+      while (pendingQueue.length > 0) {
+        const wav = pendingQueue.shift();
+        const mySeq = seq++;
+        // No source_lang_hint: the speaker's language isn't known in
+        // advance, so Whisper's own detection drives the English pivot in
+        // gpu-service (see process_pipeline.py).
+        await gpuClient.sendSegment(mySeq, config.targetLanguages, undefined, wav);
+      }
+    } finally {
+      draining = false;
+    }
+  }
+
+  const capture = captureAudio(
+    input,
+    (pcm) => {
+      connected = true;
+      const wavChunks = chunker.push(pcm);
+      for (const wav of wavChunks) {
+        if (pendingQueue.length >= MAX_QUEUE_DEPTH) {
+          pendingQueue.shift();
+          console.warn('[pipeline] chunk queue full; dropping oldest chunk to stay live');
+        }
+        pendingQueue.push(wav);
+      }
+      if (wavChunks.length > 0) drainQueue();
+    },
+    (err) => {
+      connected = false;
+      console.warn(`[pipeline] capture: ${err.message}`);
+    }
+  );
+  connected = true;
+
+  return {
+    shutdown: async () => {
+      capture.stop();
+      gpuClient.close();
+      for (const pusher of pushers.values()) pusher.stop();
+    },
+    status: () => ({
+      connected,
+      source: input,
+      queueDepth: pendingQueue.length,
+      gpuConnected: gpuClient.connected,
+      rtmp: Object.fromEntries(
+        [...pushers.entries()].map(([lang, p]) => [lang, { alive: p.alive, reconnecting: p.reconnecting }])
+      ),
+    }),
+  };
 }

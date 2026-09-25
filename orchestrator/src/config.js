@@ -12,12 +12,6 @@ function num(key, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function bool(key, fallback) {
-  const v = process.env[key];
-  if (v === undefined) return fallback;
-  return v === '1' || v.toLowerCase() === 'true';
-}
-
 // ── Language registry — SAME file the GPU service reads. Single source of
 // truth (see language-registry/README.md); never duplicate this data. ───────
 const registryPath = process.env.LANGUAGE_REGISTRY_PATH
@@ -57,96 +51,97 @@ function loadLanguageRegistry() {
   return byCode;
 }
 
-let languageRegistry = loadLanguageRegistry();
+const languageRegistry = loadLanguageRegistry();
+
+// The 10 target languages for this build — see README for how to widen this
+// to the full language-registry set later.
+const DEFAULT_TARGET_LANGUAGES = ['es', 'fr', 'pt', 'de', 'it', 'ar', 'hi', 'ja', 'ko', 'zh'];
 
 export const config = {
-  // --- Source ---------------------------------------------------------------
-  hlsSegmentSeconds: num('HLS_SEGMENT_SECONDS', 6),
-  pollIntervalDivisor: num('POLL_INTERVAL_DIVISOR', 2),
-
-  // --- GPU inference service (provider-independent — section 3) ────────────
+  // --- GPU inference service — continuous streaming (see
+  // gpu-service/app/ws/stream_ws.py) is the only path used now; the old
+  // per-segment HTTP /process is gone from the orchestrator side. ──────────
   gpu: {
-    baseUrl: process.env.GPU_SERVICE_URL || 'http://localhost:8000',
+    baseUrl: process.env.GPU_SERVICE_URL || 'http://localhost:8000', // still used for GET /health, /models
     wsUrl: process.env.GPU_SERVICE_WS_URL || 'ws://localhost:8000/ws/stream',
     apiKey: process.env.GPU_SERVICE_API_KEY || '',
-    timeoutMs: num('GPU_SERVICE_TIMEOUT_MS', 20000),
-    // Comma-separated list of additional GPU service base URLs for simple
-    // round-robin load balancing across multiple GPU workers/pods. The
-    // primary baseUrl is always included. See gpuClient.js.
+    // Comma-separated list of additional GPU service base URLs, for future
+    // multi-pod round robin (not used yet — see gpuStreamClient.js's doc
+    // comment on why splitting one chunk's languages across pods doesn't
+    // make sense without also duplicating transcription).
     pool: (process.env.GPU_SERVICE_POOL || '')
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean),
   },
 
-  // --- Real-time orchestration knobs (section 4) ────────────────────────────
-  segmentDeadlineMs: num('SEGMENT_DEADLINE_MS', 12000),
-  pipelineConcurrency: num('PIPELINE_CONCURRENCY', 2),
-  maxQueueDepth: num('MAX_QUEUE_DEPTH', 8),
+  // --- Continuous audio chunking ────────────────────────────────────────
+  chunkSeconds: num('CHUNK_SECONDS', 4),
+  chunkOverlapMs: num('CHUNK_OVERLAP_MS', 750),
+  // Ceiling for one chunk's full fan-out (transcribe once + translate/TTS
+  // for every active language, on the shared GPU connection — see
+  // pipeline.js). Keep this generous enough for real GPU-pod variance
+  // (network + processing time) now that the target list is curated to
+  // working languages only — a too-tight value here was what caused
+  // widespread false timeouts during testing, not the fan-out width itself.
+  chunkTimeoutMs: num('CHUNK_TIMEOUT_MS', 15000),
 
-  // --- Audio mixing (same fixed-duck-level design as the old engine) ───────
-  duckLevel: num('DUCK_LEVEL', 0.10),
+  // --- The fixed set of selectable target languages for this build ──────
+  targetLanguages: (process.env.TARGET_LANGUAGES || DEFAULT_TARGET_LANGUAGES.join(','))
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
 
-  // --- HLS output ────────────────────────────────────────────────────────
-  hlsOutput: {
-    windowSegments: num('HLS_WINDOW_SEGMENTS', 6), // live sliding-window size
-    dir: process.env.HLS_OUTPUT_DIR || 'work/hls_out',
+  // --- RTMP broadcast — one persistent push per language, always-on ──────
+  rtmp: {
+    baseUrl: process.env.RTMP_SERVER || '',
+    // Prefix stream keys during testing (e.g. "test-") so verification
+    // pushes don't land on the real per-language keys real viewers might
+    // already expect. Empty for production. Only applies to a language
+    // that has no explicit key below.
+    keyPrefix: process.env.RTMP_KEY_PREFIX || '',
+    // Explicit per-language stream keys, e.g.
+    // "es:SPANISH_30_HS,fr:FRENCH_109_HS,de:GERMAN_21_HS" — the real
+    // production keys, which don't follow any code-derived pattern. A
+    // language not listed here falls back to keyPrefix + language code.
+    streamKeys: new Map(
+      (process.env.RTMP_STREAM_KEYS || '')
+        .split(',')
+        .map((pair) => pair.trim())
+        .filter(Boolean)
+        .map((pair) => {
+          const [lang, key] = pair.split(':').map((s) => s.trim());
+          return [lang, key];
+        })
+    ),
+    /** Resolve the stream key to use for `lang`. */
+    keyFor(lang) {
+      return this.streamKeys.get(lang) || `${this.keyPrefix}${lang}`;
+    },
   },
 
-  // --- Shared-pipeline lifecycle (section 5: one pipeline per language,
-  // not per viewer) ──────────────────────────────────────────────────────
-  pipelineIdleGraceMs: num('PIPELINE_IDLE_GRACE_MS', 30000),
+  // Fixed internal sample rate for the live-mixed translated-audio pipe fed
+  // into each language's ffmpeg (see liveAudioMixer.js / resample.js) — TTS
+  // engines vary their native output rate, so everything is resampled to
+  // this one rate before mixing.
+  mixSampleRate: num('MIX_SAMPLE_RATE', 24000),
+  // Cap on how much translated audio can queue up waiting to play before
+  // the OLDEST excess is dropped to catch back up toward real time (see
+  // liveAudioMixer.js) — bounds the delay instead of letting it grow
+  // without limit during a processing slowdown.
+  mixMaxQueuedSeconds: num('MIX_MAX_QUEUED_SECONDS', 8),
 
-  // --- HTTP API / static HLS server ──────────────────────────────────────
+  // --- Audio mixing: how loud the original stays under the dub ───────────
+  duckLevel: num('DUCK_LEVEL', 0.2),
+
+  // --- HTTP server (monitoring endpoints only — no browser UI) ───────────
   http: {
     port: num('HTTP_PORT', 4000),
   },
 
-  // --- RTMP output (optional — see rtmp-targets.json.example) ──────────────
-  // Only used when --rtmp-targets points at a file; a language listed there
-  // gets a persistent RTMP push IN ADDITION TO its normal HLS output, and is
-  // pinned active for the life of the process (see index.js), matching the
-  // old engine's "always-on dubbing to a fixed destination" model rather
-  // than the viewer-driven /select activation used for HLS-only languages.
-  rtmp: {
-    defaultServer: process.env.RTMP_SERVER || '',
-  },
-
-  keepWork: bool('KEEP_WORK', false),
-
-  // --- Language registry accessors ──────────────────────────────────────
+  // --- Language registry accessor (just name lookups now — /languages
+  // exposes only config.targetLanguages, not the full ~100+ registry) ─────
   languageEntry(code) {
     return languageRegistry.get(code) || null;
-  },
-  enabledLanguages() {
-    return [...languageRegistry.values()].filter((l) => l.enabled);
-  },
-  allLanguages() {
-    return [...languageRegistry.values()];
-  },
-  isLanguageEnabled(code) {
-    const e = languageRegistry.get(code);
-    return !!(e && e.enabled);
-  },
-  /**
-   * Maps a human label ("French", "french") to its registry code ("fr"),
-   * by matching against `language_name`/`native_name` — reuses the SAME
-   * registry data rather than a second hand-maintained label table (the old
-   * engine's config.js had one; this derives it instead, so the two can
-   * never drift out of sync).
-   * @returns {string|null}
-   */
-  languageCodeFromLabel(label) {
-    if (!label) return null;
-    const key = String(label).trim().toLowerCase();
-    if (languageRegistry.has(key)) return key; // already a code, e.g. "fr"
-    for (const entry of languageRegistry.values()) {
-      if (entry.language_name.toLowerCase() === key) return entry.language_code;
-      if (entry.native_name?.toLowerCase() === key) return entry.language_code;
-    }
-    return null;
-  },
-  reloadLanguageRegistry() {
-    languageRegistry = loadLanguageRegistry();
   },
 };

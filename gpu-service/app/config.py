@@ -71,7 +71,10 @@ class Settings:
 
     # --- TTS --------------------------------------------------------------
     piper_voices_dir: str = os.environ.get("PIPER_VOICES_DIR", str(REPO_ROOT / "models" / "piper"))
-    piper_binary: str = os.environ.get("PIPER_BINARY", "piper")
+    # Piper's own onnxruntime session defaults to CPU (matches today's
+    # behavior) — flip to true only after installing onnxruntime-gpu; this
+    # is a separate follow-up from the persistent-model-loading fix itself.
+    piper_use_cuda: bool = os.environ.get("PIPER_USE_CUDA", "false").lower() == "true"
     xtts_model_id: str = os.environ.get("XTTS_MODEL_ID", "coqui/XTTS-v2")
     mms_tts_model_template: str = os.environ.get(
         "MMS_TTS_MODEL_TEMPLATE", "facebook/mms-tts-{code}"

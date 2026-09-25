@@ -41,16 +41,11 @@ services:
     environment:
       - STREAM_URL=${STREAM_URL:?set STREAM_URL in .env — see .env.example}
       - GPU_SERVICE_URL=http://gpu-service:8000
+      - GPU_SERVICE_WS_URL=ws://gpu-service:8000/ws/stream
       - GPU_SERVICE_API_KEY=${GPU_SERVICE_API_KEY:-}
-      - RTMP_SERVER=${RTMP_SERVER:-}
       - HTTP_PORT=4000
     volumes:
-      - ./orchestrator/work:/srv/orchestrator/work
       - ./language-registry:/srv/language-registry:ro
-      # Optional, advanced use — uncomment to use a stream-config file instead
-      # of STREAM_URL, or to push to RTMP targets (see rtmp-targets.json.example):
-      # - ./stream.json:/srv/orchestrator/stream.json:ro
-      # - ./rtmp-targets.json:/srv/orchestrator/rtmp-targets.json:ro
 
 volumes:
   hf-cache:

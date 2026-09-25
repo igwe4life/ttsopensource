@@ -34,6 +34,7 @@ class LanguageResult:
 class ProcessResult:
     transcript: TranscriptResult
     source_lang: str
+    english_text: Optional[str] = None
     languages: dict[str, LanguageResult] = field(default_factory=dict)
 
 
@@ -42,7 +43,13 @@ async def process_segment(
     target_langs: list[str],
     source_lang_hint: Optional[str] = None,
 ) -> ProcessResult:
-    """One STT call, fanned out to N (translate -> TTS) calls in parallel.
+    """One STT call, pivoted through English once, then fanned out to N
+    (translate -> TTS) calls in parallel.
+
+    The English pivot (STT -> English -> N targets, rather than translating
+    detected-language -> each target directly) matches the product's stated
+    pipeline shape and scales better as target languages are added later:
+    one new en->X model per language, not a full source x target matrix.
 
     Mirrors the old ttsengine's segmentPipeline.js deadline/fallback shape,
     but per-target-language instead of per-segment: a failure translating or
@@ -61,10 +68,18 @@ async def process_segment(
             },
         )
 
+    if detected == "en":
+        english_segments = transcript.segments
+    else:
+        english_segments, _ = await model_router.translate(
+            transcript.segments, source_lang=detected, target_lang="en"
+        )
+    english_text = " ".join(seg.text for seg in english_segments)
+
     async def _one(lang: str) -> LanguageResult:
         try:
             translated, t_engine = await model_router.translate(
-                transcript.segments, source_lang=detected, target_lang=lang
+                english_segments, source_lang="en", target_lang=lang
             )
             full_text = " ".join(seg.text for seg in translated)
             clip: SynthesizedClip
@@ -88,5 +103,6 @@ async def process_segment(
     return ProcessResult(
         transcript=transcript,
         source_lang=detected,
+        english_text=english_text,
         languages={r.language_code: r for r in results},
     )

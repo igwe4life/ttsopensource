@@ -29,36 +29,22 @@ That's it. Two containers come up:
 - `gpu-service` downloads Whisper + NLLB (a few GB — first boot takes a
   while, watch `docker compose logs -f gpu-service`) plus four verified
   starter Piper voices (English/Spanish/French/German) automatically.
-- `orchestrator` starts polling `STREAM_URL` and exposes the viewer API on
-  `:4000` (`gpu-service`'s API is also on `:8000` if you want to call it
-  directly).
+- `orchestrator` continuously captures `STREAM_URL`'s audio and streams it to
+  `gpu-service` for live transcription/translation/TTS.
 
-Then pick a language and play it:
-```bash
-curl http://localhost:4000/languages                 # what's available, per language
-curl -X POST http://localhost:4000/select -d '{"lang":"es"}' -H 'Content-Type: application/json'
-# -> { "hls_url": "/hls/es/playlist.m3u8" } — open that URL in any HLS player (e.g. VLC, hls.js)
-```
+Open **http://localhost:4000/** in a browser — the video plays directly from
+your source, and a language picker lets you switch the live translated audio
+track on the fly (English pivot → 10 target languages by default; see
+`TARGET_LANGUAGES` in `.env.example`). Only languages someone is actually
+listening to consume GPU time — picking a language subscribes you to a
+shared live stream of that language, not a fresh one per viewer.
 
-Everything else in `.env.example` (ports, API key, RTMP server default) has a
-sane default — only `STREAM_URL` is required. Models persist in Docker
-volumes (`hf-cache`, `./gpu-service/models`), so a `docker compose restart`
-doesn't re-download anything.
-
-### Pushing to RTMP instead of (or as well as) HLS
-
-If you have an existing RTMP-ingest CDN and want continuous, always-on
-dubbed RTMP streams rather than viewer-driven HLS:
-
-```bash
-cp rtmp-targets.json.example rtmp-targets.json   # edit language/stream_key/rtmp_server
-```
-Then uncomment the `rtmp-targets.json` volume line in `docker-compose.yml`
-and `docker compose up --build` again. Each entry gets its own persistent
-`ffmpeg` process pushing to `<rtmp_server>/<stream_key>` for the whole run —
-it does **not** wait for a viewer to `/select` it, matching the old engine's
-"always dubbing" model. It still also produces that language's HLS output for
-free. Check `GET /health` for `rtmp_targets: [{ lang, rtmp_url, alive }]`.
+Everything else in `.env.example` (ports, API key, chunking) has a sane
+default — only `STREAM_URL` is required. Models persist in Docker volumes
+(`hf-cache`, `./gpu-service/models`), so a `docker compose restart` doesn't
+re-download anything. There's no on-disk output at all in steady state —
+audio is captured, translated, and pushed to listening viewers continuously,
+nothing is buffered to files.
 
 ## Quickstart — without Docker (local dev, more moving parts)
 
@@ -72,7 +58,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000   # needs a CUDA GPU + Piper bin
 # separate terminal, no GPU needed:
 cd orchestrator && npm install && cp .env.example .env
 node src/index.js -i https://example.com/live/stream.m3u8
-# or: node src/index.js -i <url> --rtmp-targets rtmp-targets.json
+# then open http://localhost:4000/
 ```
 
 ## License / models

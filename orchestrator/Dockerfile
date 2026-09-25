@@ -1,6 +1,8 @@
-# Orchestrator — no GPU required. Ingests the source HLS stream, calls the
-# GPU inference service over HTTP, writes per-language output HLS, serves the
-# viewer-facing HTTP API.
+# Orchestrator — no GPU required. Continuously captures the source HLS
+# stream's audio, streams it to the GPU inference service over WebSocket, and
+# serves the viewer page + live per-language audio over its own WebSocket.
+# Video is never touched here — the browser's hls.js pulls it directly from
+# the source URL (see src/public/index.html).
 #
 # BUILD CONTEXT MUST BE THE REPO ROOT (bundles language-registry/, same as
 # gpu-service/Dockerfile):
@@ -25,10 +27,8 @@ ENV LANGUAGE_REGISTRY_PATH=/srv/language-registry/languages.json \
     HTTP_PORT=4000
 
 EXPOSE 4000
-VOLUME ["/srv/orchestrator/work"]
 
-# Simple case: set STREAM_URL in .env, nothing else to mount — see
-# docker-entrypoint.sh. Advanced cases (--stream-config / --rtmp-targets)
-# work by bind-mounting a file at /srv/orchestrator/stream.json or
-# /srv/orchestrator/rtmp-targets.json (see docker-compose.yml).
+# Nothing to mount — set STREAM_URL in .env, that's it (see
+# docker-entrypoint.sh). No persistent work directory: steady-state writes
+# nothing to disk.
 ENTRYPOINT ["./docker-entrypoint.sh"]
