@@ -82,9 +82,8 @@ doesn't re-download anything.
 
 ### Pushing to RTMP instead of (or as well as) HLS
 
-If you have an existing RTMP-ingest CDN (like the old `ttsengine`'s
-`obs1.homestream.live` setup) and want continuous, always-on dubbed RTMP
-streams rather than viewer-driven HLS:
+If you have an existing RTMP-ingest CDN and want continuous, always-on
+dubbed RTMP streams rather than viewer-driven HLS:
 
 ```bash
 cp rtmp-targets.json.example rtmp-targets.json   # edit language/stream_key/rtmp_server
