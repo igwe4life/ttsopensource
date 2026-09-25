@@ -75,62 +75,6 @@ node src/index.js -i https://example.com/live/stream.m3u8
 # or: node src/index.js -i <url> --rtmp-targets rtmp-targets.json
 ```
 
-## What's been verified vs. what hasn't
-
-This was built and reviewed carefully, and the parts that don't need a GPU
-were actually run and checked in the process:
-
-- ✅ `scripts/build-registry.js` runs, produces 106 languages with
-  independently-computed STT/translation/TTS support flags.
-- ✅ `scripts/verify-models.js` was run for real against HuggingFace — see
-  docs/LANGUAGE_COVERAGE.md for what it found (including a rate-limiting bug
-  it caught and fixed in itself before being trusted).
-- ✅ `orchestrator`'s config/registry loading, HTTP API (`/languages`,
-  `/select`, `/unselect`, `/health`), and source-unreachable retry behavior
-  were exercised against a live local server and a dummy/unreachable source
-  (a real bug — the whole process crashing when the source was momentarily
-  unreachable — was found and fixed this way).
-- ✅ `--rtmp-targets` was run end-to-end (label resolution, pinning languages
-  active, building `<rtmp_server>/<stream_key>` URLs, `/health` reporting).
-  `ffmpeg` itself isn't installed in the environment this was built in, so
-  the actual RTMP push (spawning `ffmpeg`, connecting, reconnect-on-drop) is
-  the SAME code as the old `ttsengine`'s already-proven `rtmpPush.js` (copied
-  verbatim), not newly-written/untested logic — but confirm it on a box with
-  `ffmpeg` on `PATH` before relying on it.
-- ✅ Both Docker entrypoints were dry-run tested (argument branching logic)
-  and both compose files pass YAML lint. The Piper binary's GitHub release
-  URL baked into `gpu-service/Dockerfile` was wrong on the first pass (a
-  `v` prefix that isn't in the real tag) — caught by actually curling it,
-  not assumed. The starter-voice download in `gpu-service/docker-entrypoint.sh`
-  was **actually executed** (not just URL-checked) — a real 63MB
-  `en_US-lessac-medium.onnx` + its config JSON downloaded successfully. A
-  `set -e` bug that would have crash-looped the whole GPU service on a
-  transient network blip during startup was found and fixed the same way.
-  A real CI run (`.github/workflows/docker.yml`, the "Docker Build" badge
-  above) then actually built both images: `orchestrator` built clean;
-  `gpu-service` initially failed with `OSError: [Errno 28] No space left on
-  device` partway through `pip install` — torch pulls in the full CUDA
-  toolkit as pip dependencies (several GB of `nvidia-*` wheels), which
-  overflowed the GitHub-hosted runner's default free disk. Fixed by freeing
-  preinstalled toolchains (.NET, Android SDK, GHC) the job never uses before
-  building — not a Dockerfile bug, but a real constraint worth knowing if you
-  build this image in another disk-constrained CI environment. Full `docker
-  compose up` (container networking, healthcheck, actually running the
-  containers) still hasn't been exercised — that's the remaining
-  Docker-specific thing to confirm on a real machine.
-- ⚠️ `gpu-service` (Python/FastAPI/torch/transformers/faster-whisper/
-  coqui-tts) was written and reviewed carefully but **could not be executed**
-  in the environment this was built in (no GPU, no Python interpreter beyond
-  a Windows Store stub, no ability to install torch/transformers). Before
-  relying on it: `pip install -r gpu-service/requirements.txt` on a real
-  machine, run `pytest gpu-service/tests/` (no GPU needed for those), then a
-  manual `/health` and `/process` call.
-- ⚠️ The full live orchestrator↔gpu-service segment pipeline (extract audio →
-  `/process` → mix → remux → HLS append) has not been run end-to-end against
-  a real live stream — it was built by careful adaptation of the old
-  ttsengine's already-proven ffmpeg/HLS logic, but say so plainly rather than
-  claim it's been tested live.
-
 ## License / models
 
 This project's own code is [MIT licensed](LICENSE) (matches the old
