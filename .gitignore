@@ -1,0 +1,31 @@
+# Secrets
+.env
+**/.env
+!**/.env.example
+language-registry/overrides.json
+
+# Node
+node_modules/
+npm-debug.log*
+orchestrator/work/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+gpu-service/.venv/
+gpu-service/venv/
+
+# Models (large binaries — download at deploy time, don't commit)
+gpu-service/models/
+models/
+*.onnx
+*.pt
+*.bin
+!language-registry/*.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

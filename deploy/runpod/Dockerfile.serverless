@@ -1,0 +1,35 @@
+# RunPod Serverless variant of gpu-service. Build context MUST be the repo
+# root (same as gpu-service/Dockerfile):
+#   docker build -f deploy/runpod/Dockerfile.serverless -t <tag> .
+FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3.11 python3-pip ffmpeg curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG PIPER_VERSION=2023.11.14-2
+RUN curl -L -o /tmp/piper.tar.gz \
+      "https://github.com/rhasspy/piper/releases/download/v${PIPER_VERSION}/piper_linux_x86_64.tar.gz" \
+    && tar -xzf /tmp/piper.tar.gz -C /opt \
+    && ln -s /opt/piper/piper /usr/local/bin/piper \
+    && rm /tmp/piper.tar.gz
+
+WORKDIR /srv/gpu-service
+COPY gpu-service/requirements.txt .
+RUN python3.11 -m pip install --upgrade pip \
+    && python3.11 -m pip install -r requirements.txt \
+    && python3.11 -m pip install runpod>=1.6
+
+COPY gpu-service/app ./app
+COPY deploy/runpod/handler.py ./handler.py
+COPY language-registry /srv/language-registry
+
+ENV LANGUAGE_REGISTRY_PATH=/srv/language-registry/languages.json \
+    LANGUAGE_OVERRIDES_PATH=/srv/language-registry/overrides.json \
+    PIPER_VOICES_DIR=/srv/models/piper \
+    DEVICE=cuda \
+    GPU_PROVIDER=runpod
+
+CMD ["python3.11", "handler.py"]

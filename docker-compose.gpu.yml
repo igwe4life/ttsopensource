@@ -1,0 +1,18 @@
+# GPU overlay — layer this on top of docker-compose.yml on a real
+# NVIDIA-GPU box (requires the NVIDIA Container Toolkit installed):
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+#
+# Sets DEVICE=cuda and reserves an NVIDIA GPU for gpu-service. Without this
+# file, the base compose runs gpu-service on CPU (slow, but works anywhere —
+# fine for trying the system out or CI).
+services:
+  gpu-service:
+    environment:
+      - DEVICE=cuda
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

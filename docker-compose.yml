@@ -1,0 +1,56 @@
+# Default = works on ANY machine, GPU or not (DEVICE=cpu, no GPU reservation)
+# so `docker compose up --build` never fails just because you don't have an
+# NVIDIA GPU set up — it'll just be slow. For a real GPU box, layer on the
+# GPU overlay:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+#
+# Either way, the only thing you need to set is STREAM_URL in .env (copy
+# .env.example first) — see README.md's Quickstart.
+services:
+  gpu-service:
+    build:
+      context: .
+      dockerfile: gpu-service/Dockerfile
+    ports:
+      - "${GPU_SERVICE_PORT:-8000}:8000"
+    environment:
+      - DEVICE=${DEVICE:-cpu}
+      - GPU_PROVIDER=generic
+      - GPU_SERVICE_API_KEY=${GPU_SERVICE_API_KEY:-}
+    volumes:
+      - ./gpu-service/models:/srv/models
+      - ./language-registry:/srv/language-registry:ro
+      - hf-cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "python3.11", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # Whisper large-v3 + NLLB-600M download on first boot (a few GB) —
+      # give it a long runway before healthcheck failures start counting.
+      start_period: 20m
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: orchestrator/Dockerfile
+    ports:
+      - "${ORCHESTRATOR_PORT:-4000}:4000"
+    depends_on:
+      - gpu-service
+    environment:
+      - STREAM_URL=${STREAM_URL:?set STREAM_URL in .env — see .env.example}
+      - GPU_SERVICE_URL=http://gpu-service:8000
+      - GPU_SERVICE_API_KEY=${GPU_SERVICE_API_KEY:-}
+      - RTMP_SERVER=${RTMP_SERVER:-}
+      - HTTP_PORT=4000
+    volumes:
+      - ./orchestrator/work:/srv/orchestrator/work
+      - ./language-registry:/srv/language-registry:ro
+      # Optional, advanced use — uncomment to use a stream-config file instead
+      # of STREAM_URL, or to push to RTMP targets (see rtmp-targets.json.example):
+      # - ./stream.json:/srv/orchestrator/stream.json:ro
+      # - ./rtmp-targets.json:/srv/orchestrator/rtmp-targets.json:ro
+
+volumes:
+  hf-cache:

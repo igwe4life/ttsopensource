@@ -1,0 +1,12 @@
+[
+  {
+    "language": "French",
+    "stream_key": "FRENCH_109_HS",
+    "rtmp_server": "rtmp://obs1.homestream.live/live"
+  },
+  {
+    "language": "Spanish",
+    "stream_key": "SPANISH_109_HS",
+    "rtmp_server": "rtmp://obs1.homestream.live/live"
+  }
+]

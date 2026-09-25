@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ttsopensource language registry entry",
+  "description": "One entry per language. STT / translation / TTS capability are tracked independently — a language can have STT yes, translation yes, TTS limited, all at once. Both gpu-service (Python) and orchestrator (Node) load this same file so there is exactly one source of truth.",
+  "type": "object",
+  "required": [
+    "language_code", "language_name", "native_name",
+    "stt_supported", "translation_supported", "tts_supported",
+    "quality_level", "status", "enabled", "priority"
+  ],
+  "properties": {
+    "language_code": { "type": "string", "description": "ISO 639-1 (or 639-3 for languages without a 639-1 code), e.g. 'es', 'yo'." },
+    "language_name": { "type": "string", "description": "English display name." },
+    "native_name": { "type": "string", "description": "Endonym, for UI language pickers." },
+    "whisper_code": { "type": ["string", "null"], "description": "Code passed to whisper/faster-whisper, or null if not in its language list." },
+    "stt_supported": { "type": "boolean" },
+    "stt_fallback": { "type": ["string", "null"], "description": "Engine name to try when whisper_code is null, e.g. 'mms-asr'." },
+    "nllb_code": { "type": ["string", "null"], "description": "FLORES-200 code for NLLB-200, e.g. 'spa_Latn'." },
+    "translation_supported": { "type": "boolean" },
+    "translation_model": { "type": ["string", "null"], "enum": ["nllb", "opus-mt", "marian", null] },
+    "translation_fallback": { "type": ["string", "null"] },
+    "tts_supported": { "type": "boolean" },
+    "tts_engine": { "type": ["string", "null"], "enum": ["piper", "xtts", "mms", null] },
+    "tts_model": { "type": ["string", "null"], "description": "HF repo id or Piper voice filename." },
+    "voice_id": { "type": ["string", "null"] },
+    "quality_level": { "type": "string", "enum": ["high", "medium", "limited", "experimental", "unsupported"] },
+    "status": {
+      "type": "string",
+      "enum": ["available", "limited", "experimental", "unsupported"],
+      "description": "Computed UI-facing status. 'available' = all stages solid; 'limited' = works but lower quality; 'experimental' = unverified checkpoint or missing STT; 'unsupported' = a required stage has no model at all."
+    },
+    "enabled": { "type": "boolean", "description": "Whether this language is exposed to viewers right now. Can be false even when status != unsupported, pending manual verification." },
+    "priority": { "type": "integer", "enum": [1, 2, 3], "description": "Rollout tier: 1 = initial ~20 languages, 2 = next ~45, 3 = long tail (500-1000 language expansion)." },
+    "notes": { "type": "string" }
+  }
+}

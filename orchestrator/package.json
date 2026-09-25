@@ -1,0 +1,25 @@
+{
+  "name": "ttsopensource-orchestrator",
+  "version": "0.1.0",
+  "description": "Live HLS ingest + HLS multi-language dubbed output orchestrator. Talks to the GPU inference service (../gpu-service) over HTTP/WebSocket instead of calling proprietary AI APIs directly.",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "ttsopensource": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "start:dev": "node --trace-warnings src/index.js",
+    "test": "node --test test/"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "fluent-ffmpeg": "^2.1.3",
+    "m3u8-parser": "^7.2.0"
+  }
+}

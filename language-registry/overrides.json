@@ -1,0 +1,82 @@
+{
+  "km": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-khm confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "my": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-mya confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "am": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-amh confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "as": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-asm confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "ba": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-bak confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "bo": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-bod confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "ff": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-ful confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "fo": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-fao confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "ha": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-hau confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "ht": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-hat confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "jw": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-jav confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "la": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-lat confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "rw": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-kin confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "sn": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-sna confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "so": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-som confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "su": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-sun confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "tg": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-tgk confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "tt": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-tat confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "tw": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-aka confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  },
+  "yo": {
+    "quality_level": "limited",
+    "notes": "MMS-TTS checkpoint facebook/mms-tts-yor confirmed present on HuggingFace by scripts/verify-models.js. Still recommend a manual listen test before marking \"available\"."
+  }
+}

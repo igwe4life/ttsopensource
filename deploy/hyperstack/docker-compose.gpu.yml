@@ -1,0 +1,29 @@
+# Run directly on a Hyperstack GPU VM (see README.md in this directory).
+# Build context is the repo root — run this compose file from there:
+#   docker compose -f deploy/hyperstack/docker-compose.gpu.yml up -d --build
+services:
+  gpu-service:
+    build:
+      context: ../..
+      dockerfile: gpu-service/Dockerfile
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    environment:
+      - DEVICE=cuda
+      - GPU_PROVIDER=hyperstack
+      - GPU_SERVICE_API_KEY=${GPU_SERVICE_API_KEY:?set GPU_SERVICE_API_KEY}
+    volumes:
+      - gpu-models:/srv/models
+      - hf-cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  gpu-models:
+  hf-cache:
