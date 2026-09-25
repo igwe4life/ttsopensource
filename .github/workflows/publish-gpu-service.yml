@@ -22,7 +22,15 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/ttsopensource-gpu-service
+  # Renamed from ttsopensource-gpu-service: that package's visibility toggle
+  # (Package Settings -> Change visibility -> Public) wasn't taking effect —
+  # confirmed still private via both the API and a real anonymous pull after
+  # the change was made. Fresh package name to rule out per-package stuck
+  # state; if this one also won't go public, the cause is systemic (likely
+  # packages created via GITHUB_TOKEN from a private repo staying tied to
+  # that repo's visibility) and needs a personal-access-token-based publish
+  # instead, not another rename.
+  IMAGE_NAME: ${{ github.repository_owner }}/ttsopensource-gpu
 
 jobs:
   publish:
