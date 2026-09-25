@@ -149,9 +149,9 @@ were actually run and checked in the process:
 
 ## License / models
 
-This project's own code has no license file yet — add one appropriate to your
-use (MIT matches the old `ttsengine`). The AI models it wires up (Whisper,
-NLLB-200, OPUS-MT/MarianMT, Piper, Coqui XTTS, MMS) each carry their own
-licenses — check each before commercial deployment, particularly XTTS v2
-(Coqui Public Model License — non-commercial without a separate agreement as
-of this writing) and confirm current terms yourself before shipping.
+This project's own code is [MIT licensed](LICENSE) (matches the old
+`ttsengine`). The AI models it wires up (Whisper, NLLB-200, OPUS-MT/MarianMT,
+Piper, Coqui XTTS, MMS) each carry their own licenses — check each before
+commercial deployment, particularly XTTS v2 (Coqui Public Model License —
+non-commercial without a separate agreement as of this writing) and confirm
+current terms yourself before shipping.
