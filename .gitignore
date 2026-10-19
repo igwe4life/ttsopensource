@@ -29,3 +29,6 @@ models/
 Thumbs.db
 .vscode/
 .idea/
+
+# scratch files used while driving the RunPod API (may contain secrets)
+deploy/runpod/_*
