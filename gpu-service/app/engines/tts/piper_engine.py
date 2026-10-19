@@ -53,15 +53,18 @@ def _preload_cuda_libs() -> None:
     roots = list(site.getsitepackages()) + [p for p in sys.path if p.endswith("site-packages")]
     # Dependency order: runtime -> cublas -> the rest -> cudnn last.
     wanted = ["libcudart.so.12", "libcublasLt.so.12", "libcublas.so.12", "libcufft.so.11",
-              "libcurand.so.10", "libnvJitLink.so.12", "libcudnn.so.9"]
+              "libcurand.so.10", "libnvJitLink.so.12", "libcudnn_*.so.9", "libcudnn.so.9"]
     for name in wanted:
         for root in dict.fromkeys(roots):
-            hits = glob.glob(f"{root}/nvidia/*/lib/{name}")
+            hits = sorted(glob.glob(f"{root}/nvidia/*/lib/{name}"))
             if hits:
-                try:
-                    ctypes.CDLL(hits[0], mode=ctypes.RTLD_GLOBAL)
-                except OSError as e:
-                    log.warning("could not preload %s: %s", hits[0], e)
+                # cuDNN 9 is split into libcudnn_{adv,cnn,graph,ops,...}.so.9; the CUDA
+                # provider needs them by soname, so every match gets loaded.
+                for hit in hits:
+                    try:
+                        ctypes.CDLL(hit, mode=ctypes.RTLD_GLOBAL)
+                    except OSError as e:
+                        log.warning("could not preload %s: %s", hit, e)
                 break
 
 
