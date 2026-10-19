@@ -71,6 +71,11 @@ export function runDubbingPipeline({ input }) {
   // reachable on RunPod, so the orchestrator is where they get logged).
   let segTimings = null;
   let segLangMs = {};
+  // Rolling window of recent chunk timings, surfaced in status() -> /health so
+  // capacity can be checked on a host whose logs are not reachable (RunPod).
+  const recent = []; // { wall, gpu, stt, fanout, hadSpeech }
+  const RECENT_MAX = 60;
+  let segmentsDone = 0;
 
   const gpuClient = createGpuStreamClient({
     url: config.gpu.wsUrl,
@@ -109,6 +114,9 @@ export function runDubbingPipeline({ input }) {
         await gpuClient.sendSegment(mySeq, config.targetLanguages, undefined, wav);
         const wall = Date.now() - t0;
         const tm = segTimings;
+        segmentsDone++;
+        recent.push({ wall, gpu: tm?.total_ms ?? null, stt: tm?.stt_ms ?? null, fanout: tm?.fanout_ms ?? null, hadSpeech: !!tm && tm.fanout_ms > 0 });
+        if (recent.length > RECENT_MAX) recent.shift();
         const perLang = Object.entries(segLangMs).map(([l, v]) => `${l}:${v}`).join(' ');
         console.log(
           `[timing] seg ${mySeq} wall ${wall}ms (budget ${config.chunkSeconds * 1000}ms)` +
@@ -155,9 +163,28 @@ export function runDubbingPipeline({ input }) {
       source: input,
       queueDepth: pendingQueue.length,
       gpuConnected: gpuClient.connected,
+      stats: summarize(recent, segmentsDone, droppedChunks, config.chunkSeconds * 1000, config.targetLanguages.length),
       rtmp: Object.fromEntries(
         [...pushers.entries()].map(([lang, p]) => [lang, { alive: p.alive, reconnecting: p.reconnecting }])
       ),
     }),
+  };
+}
+
+function summarize(recent, segmentsDone, dropped, budgetMs, languages) {
+  const speech = recent.filter((r) => r.hadSpeech);
+  const avg = (rows, k) => (rows.length ? Math.round(rows.reduce((a, r) => a + (r[k] || 0), 0) / rows.length) : null);
+  const max = (rows, k) => (rows.length ? Math.max(...rows.map((r) => r[k] || 0)) : null);
+  return {
+    languages,
+    budgetMs,
+    segmentsDone,
+    droppedTotal: dropped,
+    window: recent.length,
+    wallAvgMs: avg(speech, 'wall'),
+    wallMaxMs: max(speech, 'wall'),
+    gpuAvgMs: avg(speech, 'gpu'),
+    sttAvgMs: avg(speech, 'stt'),
+    fanoutAvgMs: avg(speech, 'fanout'),
   };
 }
