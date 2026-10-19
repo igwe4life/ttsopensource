@@ -40,6 +40,38 @@ from app.registry.language_registry import registry
 log = logging.getLogger("piper")
 
 
+def _preload_cuda_libs() -> None:
+    """onnxruntime-gpu 1.20 has no preload_dlls(): it dlopen()s libcudnn.so.9 /
+    libcublas.so.12 by soname and, when they are not on the loader path, quietly
+    retries on CPU. torch's pip wheels ship those libs under site-packages/nvidia/*/lib
+    but do not put them on the path, so load them RTLD_GLOBAL up front."""
+    import ctypes
+    import glob
+    import site
+    import sys
+
+    roots = list(site.getsitepackages()) + [p for p in sys.path if p.endswith("site-packages")]
+    # Dependency order: runtime -> cublas -> the rest -> cudnn last.
+    wanted = ["libcudart.so.12", "libcublasLt.so.12", "libcublas.so.12", "libcufft.so.11",
+              "libcurand.so.10", "libnvJitLink.so.12", "libcudnn.so.9"]
+    for name in wanted:
+        for root in dict.fromkeys(roots):
+            hits = glob.glob(f"{root}/nvidia/*/lib/{name}")
+            if hits:
+                try:
+                    ctypes.CDLL(hits[0], mode=ctypes.RTLD_GLOBAL)
+                except OSError as e:
+                    log.warning("could not preload %s: %s", hits[0], e)
+                break
+
+
+if settings.piper_use_cuda:
+    try:
+        _preload_cuda_libs()
+    except Exception:  # noqa: BLE001 -- best effort; the CPU fallback still works
+        log.warning("CUDA lib preload failed", exc_info=True)
+
+
 class PiperEngine(TextToSpeechEngine):
     name = "piper"
 
@@ -47,6 +79,7 @@ class PiperEngine(TextToSpeechEngine):
         self._voices_dir = Path(settings.piper_voices_dir)
         self._voices: dict[str, PiperVoice] = {}  # voice_id -> resident, loaded voice
         self._providers: dict[str, list[str]] = {}  # voice_id -> ORT providers actually in use
+        self._cuda_diag: Optional[dict] = None
         self._lock = asyncio.Lock()
 
     def supports(self, language_code: str) -> bool:
@@ -94,10 +127,17 @@ class PiperEngine(TextToSpeechEngine):
 
     def info(self) -> dict:
         """Surfaced in /health so the GPU-vs-CPU outcome is verifiable remotely."""
-        return {
+        out = {
             "use_cuda_requested": settings.piper_use_cuda,
             "voices": {vid: prov for vid, prov in self._providers.items()},
         }
+        # If a voice ended up on CPU although CUDA was requested, explain why
+        # (pod logs are not reachable on RunPod, so this is the only window).
+        if settings.piper_use_cuda and any("CUDAExecutionProvider" not in p for p in self._providers.values()):
+            if self._cuda_diag is None:
+                self._cuda_diag = _diagnose_cuda(self._voices_dir)
+            out["cuda_diagnosis"] = self._cuda_diag
+        return out
 
     async def synthesize(
         self, text: str, language_code: str, voice_id: Optional[str] = None
@@ -128,6 +168,48 @@ def _load_voice(path: str):
             log.warning("Piper CUDA load failed for %s, falling back to CPU", path, exc_info=True)
     voice = PiperVoice.load(path, use_cuda=False)
     return voice, _providers_of(voice)
+
+
+def _diagnose_cuda(voices_dir: Path) -> dict:
+    """Why isn't the CUDA execution provider being used? Reports the installed
+    onnxruntime build, what it claims to offer, and the real error from trying
+    to open a session with CUDA only."""
+    import warnings
+
+    diag: dict = {}
+    try:
+        import onnxruntime as ort
+
+        diag["ort_version"] = ort.__version__
+        diag["ort_file"] = getattr(ort, "__file__", None)
+        diag["ort_device"] = ort.get_device()
+        diag["available_providers"] = ort.get_available_providers()
+        voice = next(iter(sorted(voices_dir.glob("*.onnx"))), None)
+        if voice is not None:
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                try:
+                    sess = ort.InferenceSession(str(voice), providers=["CUDAExecutionProvider"])
+                    diag["probe_providers"] = sess.get_providers()
+                except Exception as e:  # noqa: BLE001
+                    diag["probe_error"] = f"{type(e).__name__}: {e}"[:600]
+            if caught:
+                diag["probe_warnings"] = [str(w.message)[:300] for w in caught][:3]
+        # Direct dlopen of the CUDA provider library names the missing .so.
+        import ctypes
+        from pathlib import Path as _P
+
+        lib = _P(ort.__file__).parent / "capi" / "libonnxruntime_providers_cuda.so"
+        diag["cuda_provider_lib_exists"] = lib.exists()
+        if lib.exists():
+            try:
+                ctypes.CDLL(str(lib))
+                diag["cuda_provider_dlopen"] = "ok"
+            except OSError as e:
+                diag["cuda_provider_dlopen"] = str(e)[:300]
+    except Exception as e:  # noqa: BLE001
+        diag["diagnosis_error"] = f"{type(e).__name__}: {e}"[:300]
+    return diag
 
 
 def _providers_of(voice) -> list[str]:
