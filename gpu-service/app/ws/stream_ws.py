@@ -82,6 +82,9 @@ async def handle_stream(websocket: WebSocket) -> None:
                     "error": lang_result.error,
                     "sample_rate": lang_result.sample_rate,
                     "audio_bytes": len(lang_result.audio) if lang_result.audio else 0,
+                    "translate_ms": lang_result.translate_ms,
+                    "tts_ms": lang_result.tts_ms,
+                    "timings": result.timings,
                 }
                 await websocket.send_text(json.dumps(payload))
                 if lang_result.ok and lang_result.audio:

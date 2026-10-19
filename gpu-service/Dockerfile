@@ -35,7 +35,12 @@ COPY gpu-service/requirements.txt .
 # torch's default PyPI wheel is CUDA-enabled on Linux x86_64 for recent
 # versions; pin an explicit --index-url here if you need a specific CUDA build.
 RUN python3.11 -m pip install --upgrade pip \
-    && python3.11 -m pip install -r requirements.txt
+    && python3.11 -m pip install -r requirements.txt \
+    # piper-tts pulls the CPU-only onnxruntime wheel, which shares its module
+    # name with onnxruntime-gpu -- remove it, then install the GPU build
+    # (CUDA 12 / cuDNN 9, satisfied by torch's bundled nvidia-* wheels).
+    && python3.11 -m pip uninstall -y onnxruntime \
+    && python3.11 -m pip install "onnxruntime-gpu==1.20.1"
 
 COPY gpu-service/app ./app
 COPY gpu-service/docker-entrypoint.sh ./docker-entrypoint.sh

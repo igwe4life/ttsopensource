@@ -66,12 +66,19 @@ export function runDubbingPipeline({ input }) {
   const MAX_QUEUE_DEPTH = 2;
   const pendingQueue = [];
   let draining = false;
+  let droppedChunks = 0;
+  // Per-segment stage timings reported by gpu-service (pod logs are not
+  // reachable on RunPod, so the orchestrator is where they get logged).
+  let segTimings = null;
+  let segLangMs = {};
 
   const gpuClient = createGpuStreamClient({
     url: config.gpu.wsUrl,
     apiKey: config.gpu.apiKey,
     timeoutMs: config.chunkTimeoutMs,
     onLanguageResult: async (lang, meta, audio) => {
+      if (meta.timings) segTimings = meta.timings;
+      if (meta.translate_ms != null) segLangMs[lang] = `tr ${meta.translate_ms}/tts ${meta.tts_ms}`;
       if (meta.ok && audio) {
         console.log(`[pipeline] [${lang}] "${(meta.text || '').slice(0, 60)}" (${audio.length}B)`);
         try {
@@ -96,7 +103,19 @@ export function runDubbingPipeline({ input }) {
         // No source_lang_hint: the speaker's language isn't known in
         // advance, so Whisper's own detection drives the English pivot in
         // gpu-service (see process_pipeline.py).
+        segTimings = null;
+        segLangMs = {};
+        const t0 = Date.now();
         await gpuClient.sendSegment(mySeq, config.targetLanguages, undefined, wav);
+        const wall = Date.now() - t0;
+        const tm = segTimings;
+        const perLang = Object.entries(segLangMs).map(([l, v]) => `${l}:${v}`).join(' ');
+        console.log(
+          `[timing] seg ${mySeq} wall ${wall}ms (budget ${config.chunkSeconds * 1000}ms)` +
+            (tm ? ` | stt ${tm.stt_ms} en ${tm.translate_en_ms} batch-tr ${tm.translate_batch_ms} fanout ${tm.fanout_ms} gpu-total ${tm.total_ms}` : ' | no gpu timings') +
+            (perLang ? ` | ${perLang}` : '') +
+            ` | queued ${pendingQueue.length} dropped ${droppedChunks}`
+        );
       }
     } finally {
       draining = false;
@@ -111,6 +130,7 @@ export function runDubbingPipeline({ input }) {
       for (const wav of wavChunks) {
         if (pendingQueue.length >= MAX_QUEUE_DEPTH) {
           pendingQueue.shift();
+          droppedChunks++;
           console.warn('[pipeline] chunk queue full; dropping oldest chunk to stay live');
         }
         pendingQueue.push(wav);

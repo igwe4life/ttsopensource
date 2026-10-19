@@ -17,9 +17,18 @@ from __future__ import annotations
 
 import asyncio
 import io
+import logging
 import wave
 from pathlib import Path
 from typing import Optional
+
+# torch first: importing it preloads the CUDA/cuDNN shared libs from its own
+# pip wheels, which onnxruntime-gpu then finds (the documented workaround for
+# ORT not locating cuDNN on its own). Harmless on a CPU-only install.
+try:
+    import torch  # noqa: F401
+except ImportError:
+    pass
 
 from piper import PiperVoice
 
@@ -28,12 +37,16 @@ from app.engines.base import EngineLoadError, SynthesizedClip, TextToSpeechEngin
 from app.registry.language_registry import registry
 
 
+log = logging.getLogger("piper")
+
+
 class PiperEngine(TextToSpeechEngine):
     name = "piper"
 
     def __init__(self):
         self._voices_dir = Path(settings.piper_voices_dir)
         self._voices: dict[str, PiperVoice] = {}  # voice_id -> resident, loaded voice
+        self._providers: dict[str, list[str]] = {}  # voice_id -> ORT providers actually in use
         self._lock = asyncio.Lock()
 
     def supports(self, language_code: str) -> bool:
@@ -66,16 +79,25 @@ class PiperEngine(TextToSpeechEngine):
             # the event loop, same as the other engines' model loads).
             loop = asyncio.get_event_loop()
             try:
-                self._voices[vid] = await loop.run_in_executor(
-                    None, lambda: PiperVoice.load(str(path), use_cuda=settings.piper_use_cuda)
-                )
+                voice, providers = await loop.run_in_executor(None, _load_voice, str(path))
             except Exception as e:  # noqa: BLE001 — e.g. missing/corrupt voice.onnx.json
                 raise EngineLoadError(f"Piper failed to load voice {vid}: {e}") from e
+            self._voices[vid] = voice
+            self._providers[vid] = providers
+            log.info("Piper voice %s loaded, providers=%s", vid, providers)
 
     async def unload(self, language_code: str, voice_id: Optional[str] = None) -> None:
         entry = registry.get(language_code)
         vid = voice_id or (entry.voice_id if entry else None)
         self._voices.pop(vid, None)
+        self._providers.pop(vid, None)
+
+    def info(self) -> dict:
+        """Surfaced in /health so the GPU-vs-CPU outcome is verifiable remotely."""
+        return {
+            "use_cuda_requested": settings.piper_use_cuda,
+            "voices": {vid: prov for vid, prov in self._providers.items()},
+        }
 
     async def synthesize(
         self, text: str, language_code: str, voice_id: Optional[str] = None
@@ -91,6 +113,28 @@ class PiperEngine(TextToSpeechEngine):
         loop = asyncio.get_event_loop()
         wav_bytes = await loop.run_in_executor(None, _synthesize_wav_bytes, voice, text)
         return SynthesizedClip(audio=wav_bytes, sample_rate=voice.config.sample_rate)
+
+
+def _load_voice(path: str):
+    """Runs on a worker thread. Tries CUDA when requested and falls back to
+    CPU if the CUDA execution provider can't be created, so a missing or
+    mismatched onnxruntime-gpu degrades to the old behavior instead of
+    losing the voice."""
+    if settings.piper_use_cuda:
+        try:
+            voice = PiperVoice.load(path, use_cuda=True)
+            return voice, _providers_of(voice)
+        except Exception:  # noqa: BLE001
+            log.warning("Piper CUDA load failed for %s, falling back to CPU", path, exc_info=True)
+    voice = PiperVoice.load(path, use_cuda=False)
+    return voice, _providers_of(voice)
+
+
+def _providers_of(voice) -> list[str]:
+    try:
+        return list(voice.session.get_providers())
+    except Exception:  # noqa: BLE001 -- attribute layout differs across piper versions
+        return ["unknown"]
 
 
 def _synthesize_wav_bytes(voice: "PiperVoice", text: str) -> bytes:

@@ -95,6 +95,39 @@ async def translate(
     raise UnsupportedLanguageError(f"No working translation engine for {source_lang}->{target_lang}")
 
 
+async def translate_many(
+    segments: list[TranscriptSegment], source_lang: str, target_langs: list[str]
+) -> tuple[dict[str, tuple[list[TranslatedSegment], str]], dict[str, Exception]]:
+    """Translate the same segments into many languages with ONE batched NLLB
+    pass. Returns (successes, failures) keyed by language. Any language NLLB
+    can't batch (or if the batch call fails outright) goes through the
+    per-language translate() path, which still has the OPUS-MT fallback."""
+    results: dict[str, tuple[list[TranslatedSegment], str]] = {}
+    failures: dict[str, Exception] = {}
+
+    batchable = [
+        l for l in target_langs
+        if (registry.get(l) and registry.get(l).translation_supported)
+        and nllb_engine.supports_pair(source_lang, l)
+    ]
+    if batchable:
+        try:
+            batched = await nllb_engine.translate_multi(segments, source_lang, batchable)
+            for lang, segs in batched.items():
+                results[lang] = (segs, nllb_engine.name)
+        except Exception:
+            log.warning("Batched NLLB failed for %s, falling back to per-language", source_lang, exc_info=True)
+
+    for lang in target_langs:
+        if lang in results:
+            continue
+        try:
+            results[lang] = await translate(segments, source_lang, lang)
+        except Exception as e:  # noqa: BLE001 -- isolate per language
+            failures[lang] = e
+    return results, failures
+
+
 async def synthesize(
     text: str, language_code: str, voice_id: Optional[str] = None
 ) -> tuple[SynthesizedClip, str]:
@@ -135,4 +168,5 @@ def status() -> dict:
             "fallback_pool": translation_pool.stats(),
         },
         "tts_pool": tts_pool.stats(),
+        "piper": piper_engine.info(),
     }
