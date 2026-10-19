@@ -29,6 +29,23 @@ from app.registry.language_registry import registry
 
 MMS_SAMPLE_RATE = 16000  # VITS output rate for MMS-TTS checkpoints
 
+_UROMAN = None  # lazily created romanizer
+
+
+def _romanize(text: str) -> str:
+    """Some MMS-TTS checkpoints (non-Latin scripts) were trained on romanized
+    text: their tokenizer sets is_uroman=True and expects the input to be run
+    through uroman first. Without it the tokenizer drops every character."""
+    global _UROMAN
+    try:
+        if _UROMAN is None:
+            import uroman as ur
+
+            _UROMAN = ur.Uroman()
+        return _UROMAN.romanize_string(text)
+    except Exception:  # noqa: BLE001 -- fall back to the raw text rather than fail the language
+        return text
+
 
 class MMSTTSEngine(TextToSpeechEngine):
     name = "mms"
@@ -98,7 +115,11 @@ class MMSTTSEngine(TextToSpeechEngine):
         def _run():
             import torch
 
-            inputs = tokenizer(text, return_tensors="pt")
+            if getattr(tokenizer, "is_uroman", False):
+                text_in = _romanize(text)
+            else:
+                text_in = text
+            inputs = tokenizer(text_in, return_tensors="pt")
             if settings.device.startswith("cuda"):
                 inputs = {k: v.to(settings.device) for k, v in inputs.items()}
             with torch.no_grad():

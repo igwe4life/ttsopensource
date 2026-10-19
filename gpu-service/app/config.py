@@ -80,6 +80,14 @@ class Settings:
         "MMS_TTS_MODEL_TEMPLATE", "facebook/mms-tts-{code}"
     )
 
+    # --- Startup preload (pod shard) ------------------------------------------
+    # Comma-separated language codes to download + load (+ warm up) at boot, so
+    # the first live chunk never waits on a model download. Empty = lazy loading.
+    preload_languages: tuple = tuple(
+        c.strip() for c in os.environ.get("PRELOAD_LANGUAGES", "").split(",") if c.strip()
+    )
+    preload_concurrency: int = _int("PRELOAD_CONCURRENCY", 4)
+
     # --- Model pool / routing (section 7: intelligent model routing) --------
     max_loaded_tts_models: int = _int("MAX_LOADED_TTS_MODELS", 6)
     max_loaded_translation_models: int = _int("MAX_LOADED_TRANSLATION_MODELS", 4)

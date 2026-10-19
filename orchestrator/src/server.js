@@ -13,6 +13,19 @@ import * as gpuClient from './gpuClient.js';
 export function createServer({ sourceInput, pipeline }) {
   const app = express();
 
+  // Local source relay (see live/sourceRelay.js): the per-language ffmpeg
+  // pushers read their video from here when SOURCE_RELAY=true.
+  if (pipeline?.relayDir) {
+    app.use(
+      '/relay',
+      express.static(pipeline.relayDir, {
+        etag: false,
+        lastModified: false,
+        setHeaders: (res) => res.setHeader('Cache-Control', 'no-store'),
+      })
+    );
+  }
+
   app.get('/languages', (_req, res) => {
     const languages = config.targetLanguages.map((code) => {
       const entry = config.languageEntry(code);
@@ -27,16 +40,12 @@ export function createServer({ sourceInput, pipeline }) {
   });
 
   app.get('/health', async (_req, res) => {
-    let gpu = null;
-    try {
-      gpu = await gpuClient.health();
-    } catch (err) {
-      gpu = { status: 'unreachable', error: err.message };
-    }
+    const gpus = await gpuClient.healthAll();
     res.json({
       status: 'ok',
       source: pipeline?.status ? pipeline.status() : null,
-      gpu_service: gpu,
+      gpu_service: gpus[0],
+      gpu_services: gpus,
     });
   });
 

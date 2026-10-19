@@ -34,6 +34,7 @@ from piper import PiperVoice
 
 from app.config import settings
 from app.engines.base import EngineLoadError, SynthesizedClip, TextToSpeechEngine, UnsupportedLanguageError
+from app.engines.tts.piper_voices import ensure_voice
 from app.registry.language_registry import registry
 
 
@@ -105,6 +106,12 @@ class PiperEngine(TextToSpeechEngine):
             if vid in self._voices:
                 return
             path = self._voice_path(vid)
+            if not path.exists():
+                # Not pre-fetched by the entrypoint: pull it from HuggingFace now.
+                try:
+                    await asyncio.get_event_loop().run_in_executor(None, ensure_voice, vid)
+                except Exception as e:  # noqa: BLE001
+                    log.warning("could not download Piper voice %s: %s", vid, e)
             if not path.exists():
                 raise EngineLoadError(
                     f"Piper voice file missing: {path}. Download it from "

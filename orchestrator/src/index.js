@@ -59,7 +59,7 @@ async function main() {
   }
 
   const httpPort = args.httpPort || config.http.port;
-  const pipeline = runDubbingPipeline({ input: args.input });
+  const pipeline = runDubbingPipeline({ input: args.input, httpPort });
 
   const app = createServer({ sourceInput: args.input, pipeline });
   const server = app.listen(httpPort, () => {

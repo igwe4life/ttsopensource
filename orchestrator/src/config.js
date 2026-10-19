@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { readFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -73,6 +74,28 @@ export const config = {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean),
+    // GPU pool: comma-separated gpu-service base URLs. The language list is
+    // sharded across them (see pipeline.js). Every node must accept the same
+    // GPU_SERVICE_API_KEY. Empty -> a single node from GPU_SERVICE_URL /
+    // GPU_SERVICE_WS_URL, exactly as before.
+    nodes: (() => {
+      const urls = (process.env.GPU_POOL || '').split(',').map((s) => s.trim().replace(/\/+$/, '')).filter(Boolean);
+      if (urls.length === 0) {
+        return [{
+          baseUrl: process.env.GPU_SERVICE_URL || 'http://localhost:8000',
+          wsUrl: process.env.GPU_SERVICE_WS_URL || 'ws://localhost:8000/ws/stream',
+        }];
+      }
+      return urls.map((u) => ({ baseUrl: u, wsUrl: u.replace(/^http/, 'ws') + '/ws/stream' }));
+    })(),
+  },
+
+  // --- Shared source relay: pull the live source ONCE and let every
+  // language's pusher read it locally (see live/sourceRelay.js). Off by
+  // default; turn on when running many languages. ─────────────────────────
+  sourceRelay: {
+    enabled: process.env.SOURCE_RELAY === 'true',
+    dir: process.env.RELAY_DIR || path.join(os.tmpdir(), 'ttsopensource-relay'),
   },
 
   // --- Continuous audio chunking ────────────────────────────────────────
