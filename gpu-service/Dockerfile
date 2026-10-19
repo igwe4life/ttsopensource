@@ -40,7 +40,7 @@ RUN python3.11 -m pip install --upgrade pip \
     # name with onnxruntime-gpu -- remove it, then install the GPU build
     # (CUDA 12 / cuDNN 9, satisfied by torch's bundled nvidia-* wheels).
     && python3.11 -m pip uninstall -y onnxruntime \
-    && python3.11 -m pip install "onnxruntime-gpu==1.20.1"
+    && python3.11 -m pip install "onnxruntime-gpu==1.20.2"
 
 COPY gpu-service/app ./app
 COPY gpu-service/docker-entrypoint.sh ./docker-entrypoint.sh
