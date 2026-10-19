@@ -1,15 +1,23 @@
 # Orchestrator — no GPU required. Continuously captures the source HLS
-# stream's audio, streams it to the GPU inference service over WebSocket, and
-# serves the viewer page + live per-language audio over its own WebSocket.
-# Video is never touched here — the browser's hls.js pulls it directly from
-# the source URL (see src/public/index.html).
+# stream's audio, streams it to the GPU inference service over WebSocket,
+# live-mixes each language's translated audio over the (ducked) original,
+# and pushes one always-on RTMP stream per language. Video is passed through
+# untouched (-c:v copy). Exposes only /health and /languages for monitoring.
+#
+# Runs on any small CPU host (RunPod CPU pod, a VM, a laptop). Everything
+# is configured through env vars — see orchestrator/.env.example; secrets
+# (stream keys, GPU API key) are injected at runtime, never baked in.
 #
 # BUILD CONTEXT MUST BE THE REPO ROOT (bundles language-registry/, same as
 # gpu-service/Dockerfile):
 #   docker build -f orchestrator/Dockerfile -t ttsopensource-orchestrator .
 FROM node:20-bookworm-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+# Links the GHCR package to this (public) repo so it inherits public
+# visibility on first publish — RunPod then pulls it without credentials.
+LABEL org.opencontainers.image.source="https://github.com/igwe4life/ttsopensource"
+
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /srv/orchestrator
@@ -28,7 +36,6 @@ ENV LANGUAGE_REGISTRY_PATH=/srv/language-registry/languages.json \
 
 EXPOSE 4000
 
-# Nothing to mount — set STREAM_URL in .env, that's it (see
-# docker-entrypoint.sh). No persistent work directory: steady-state writes
-# nothing to disk.
+# Set STREAM_URL (the source HLS URL) plus the GPU_SERVICE_* and RTMP_* vars.
+# No persistent work directory: steady-state writes nothing to disk.
 ENTRYPOINT ["./docker-entrypoint.sh"]
