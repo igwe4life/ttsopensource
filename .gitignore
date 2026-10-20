@@ -32,3 +32,7 @@ Thumbs.db
 
 # scratch files used while driving the RunPod API (may contain secrets)
 deploy/runpod/_*
+
+# per-run state written by deploy/runpod/pool scripts
+deploy/runpod/pool/pool_pods.json
+deploy/runpod/pool/cpu_pool_pod.txt
