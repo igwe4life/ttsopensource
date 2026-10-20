@@ -100,6 +100,28 @@ on ports 1935, 80 and 443 from both RunPod and the dev PC, so end-to-end streami
 final configuration. Check it before any further stream test. (Earlier tests: 50 streams delivered a clean 25 fps;
 100 streams degraded — see above.)
 
+## Running production on the pool (2026-10-20)
+
+Production = 2 x RTX 3090 pods (`ttsopensource-prod-gpu-0/1`) + one 8 vCPU orchestrator pod
+(`ttsopensource-prod-orchestrator`), ~$1.24/hr, 50 languages from `language-registry/pool-50.json`.
+es/fr/de use the real keys from `orchestrator/.env` (`RTMP_STREAM_KEYS`); the other 47 publish to
+`<RTMP_KEY_PREFIX><code>` (prefix `test-`) until real keys exist. The original single-A40 stack is left *stopped*
+(not deleted) as a fallback.
+
+Operate it with the scripts in `deploy/runpod/pool/` (all read credentials from `deploy/runpod/.env`):
+
+```
+POOL_FILE=<abs path>/language-registry/pool-50.json node scale_pool.cjs <gpu-image-tag> 2   # create the 2 GPU pods
+node poll_pool.cjs                                                                            # wait for workers
+POOL_FILE=... KEY_PREFIX=test- REAL_KEYS=1 STREAM_URL=<hls> node cpu_pool.cjs                 # orchestrator pod
+node cpu_stats.cjs                                                                            # pushers / chunk timings
+node teardown.cjs                                                                             # delete pool + orchestrator pods
+```
+
+To add real keys for more languages: put `code:KEY` pairs in `RTMP_STREAM_KEYS` in `orchestrator/.env` and recreate
+the orchestrator pod (or PATCH its env). The orchestrator pod's `/health` (port 4000) shows pushers, relay, GPU
+nodes and rolling chunk timings; the GPU pods' `/health` shows `models.tts_workers` and `preload`.
+
 ## Cost reference
 
 RTX 3090 $0.50/hr (RTX 4090 $0.89/hr was faster for MMS), 16 vCPU CPU pod $0.48/hr, A40 $0.59/hr.

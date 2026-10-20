@@ -15,7 +15,7 @@ const call = (method, path, body) => fetch('https://rest.runpod.io/v1' + path, {
   // ONLY_PODS=1 creates just the first pod of the <targetPods>-way split (single-pod tests).
   while (pods.length < Math.min(target, Number(process.env.ONLY_PODS || target))) {
     const i = pods.length;
-    const body = { name: `ttsopensource-pool-${i}`, imageName: `ghcr.io/igwe4life/ttsopensource-gpu:${tag}`, gpuTypeIds: ['NVIDIA GeForce RTX 3090'], gpuTypePriority: 'custom', gpuCount: 1, cloudType: 'SECURE',
+    const body = { name: `ttsopensource-prod-gpu-${i}`, imageName: `ghcr.io/igwe4life/ttsopensource-gpu:${tag}`, gpuTypeIds: ['NVIDIA GeForce RTX 3090'], gpuTypePriority: 'custom', gpuCount: 1, cloudType: 'SECURE',
       containerDiskInGb: 50, volumeInGb: 40, volumeMountPath: '/root/.cache/huggingface', ports: ['8000/http'],
       env: { DEVICE: 'cuda', GPU_PROVIDER: 'runpod', GPU_SERVICE_API_KEY: GPU_KEY, PRELOAD_LANGUAGES: shards[i].join(','), PRELOAD_CONCURRENCY: '6', MAX_LOADED_TTS_MODELS: '80', NLLB_MAX_BATCH: '64', PIPER_VOICES_DIR: '/root/.cache/huggingface/piper', TTS_WORKER_PROCS: '12', PIPER_USE_CUDA: 'false', PIPER_CPU_THREADS: '2', ...(process.env.EXTRA_ENV ? JSON.parse(process.env.EXTRA_ENV) : {}) } };
     let landed = null;

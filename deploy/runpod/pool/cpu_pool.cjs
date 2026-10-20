@@ -11,11 +11,11 @@ const langs = JSON.parse(fs.readFileSync(process.env.POOL_FILE || (REPO + '/lang
 const env = {
   GPU_SERVICE_API_KEY: GPU_KEY, GPU_POOL: pods.map((p) => `https://${p.id}-8000.proxy.runpod.net`).join(','),
   STREAM_URL: process.env.STREAM_URL,
-  TARGET_LANGUAGES: langs.join(','), RTMP_SERVER: rtmpServer, RTMP_KEY_PREFIX: process.env.KEY_PREFIX || 'pool-test-', RTMP_STREAM_KEYS: '',
+  TARGET_LANGUAGES: langs.join(','), RTMP_SERVER: rtmpServer, RTMP_KEY_PREFIX: process.env.KEY_PREFIX || 'pool-test-', RTMP_STREAM_KEYS: process.env.REAL_KEYS === '1' ? ((orch.match(/^RTMP_STREAM_KEYS=(.*)$/m) || [, ''])[1].trim()) : '',
   SOURCE_RELAY: 'true', CHUNK_SECONDS: '4', CHUNK_OVERLAP_MS: '750', CHUNK_TIMEOUT_MS: '15000',
   MIX_SAMPLE_RATE: '24000', MIX_MAX_QUEUED_SECONDS: '8', DUCK_LEVEL: '0.2', HTTP_PORT: '4000',
 };
-const body = { name: 'ttsopensource-orchestrator-pool', imageName: 'ghcr.io/igwe4life/ttsopensource-orchestrator:latest', computeType: 'CPU', cpuFlavorIds: ['cpu3c', 'cpu5c', 'cpu3g', 'cpu5g'], cpuFlavorPriority: 'custom', vcpuCount: 8, cloudType: 'SECURE', containerDiskInGb: 20, volumeInGb: 0, ports: ['4000/http'], env };
+const body = { name: process.env.POD_NAME || 'ttsopensource-orchestrator-pool', imageName: 'ghcr.io/igwe4life/ttsopensource-orchestrator:latest', computeType: 'CPU', cpuFlavorIds: ['cpu3c', 'cpu5c', 'cpu3g', 'cpu5g'], cpuFlavorPriority: 'custom', vcpuCount: 8, cloudType: 'SECURE', containerDiskInGb: 20, volumeInGb: 0, ports: ['4000/http'], env };
 (async () => {
   for (let a = 1; a <= 15; a++) {
     const out = await (await fetch('https://rest.runpod.io/v1/pods', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RUNPOD_KEY}` }, body: JSON.stringify(body) })).json();
