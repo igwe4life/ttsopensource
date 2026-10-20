@@ -38,6 +38,9 @@ from app.routing.model_pool import translation_pool, tts_pool
 
 log = logging.getLogger("router")
 
+# language -> last TTS error text; surfaced in /health (pod logs are unreachable on RunPod).
+tts_errors: dict[str, str] = {}
+
 # ── Singletons — constructed once, reused for the life of the process ──────
 stt_engine = FasterWhisperEngine() if settings.stt_engine == "faster-whisper" else WhisperEngine()
 nllb_engine = NLLBEngine()
@@ -138,6 +141,7 @@ async def synthesize(
         raise UnsupportedLanguageError(f"{language_code} has no TTS route configured")
 
     tried = []
+    last_error = None
     preferred = [entry.tts_engine] + [e for e in _TTS_PRIORITY if e != entry.tts_engine]
     for engine_name in preferred:
         engine = _TTS_ENGINES.get(engine_name)
@@ -150,13 +154,17 @@ async def synthesize(
                 pool = tts_pool
                 key = voice_id or (entry.voice_id if engine_name == "mms" else "xtts")
                 await pool.touch(engine.name, key, lambda: engine.unload(language_code, voice_id))
+            tts_errors.pop(language_code, None)
             return clip, engine_name
-        except Exception:
+        except Exception as e:  # noqa: BLE001
+            last_error = f"{type(e).__name__}: {e}"[:240]
+            tts_errors[language_code] = last_error
             log.warning("TTS engine %s failed for %s, trying next", engine_name, language_code, exc_info=True)
             continue
 
     raise UnsupportedLanguageError(
-        f"All TTS engines failed for {language_code} (tried: {', '.join(tried) or 'none configured'})"
+        f"All TTS engines failed for {language_code} (tried: {', '.join(tried) or 'none configured'}"
+        + (f"; last error: {last_error})" if last_error else ")")
     )
 
 
@@ -169,4 +177,5 @@ def status() -> dict:
         },
         "tts_pool": tts_pool.stats(),
         "piper": piper_engine.info(),
+        "tts_errors": dict(tts_errors),
     }

@@ -24,6 +24,7 @@ import io
 from typing import Optional
 
 from app.config import settings
+from app.engines.tts.executor import tts_executor
 from app.engines.base import EngineLoadError, SynthesizedClip, TextToSpeechEngine, UnsupportedLanguageError
 from app.registry.language_registry import registry
 
@@ -84,6 +85,8 @@ class MMSTTSEngine(TextToSpeechEngine):
                 model = VitsModel.from_pretrained(model_id)
                 if settings.device.startswith("cuda"):
                     model = model.to(settings.device)
+                    if settings.mms_fp16:
+                        model = model.half()
                 model.eval()
                 return model, tokenizer
 
@@ -111,6 +114,7 @@ class MMSTTSEngine(TextToSpeechEngine):
         if mms_code not in self._models:
             await self.load(language_code, mms_code)
         model, tokenizer = self._models[mms_code]
+        text = text[:600]  # runaway translations must not become minute-long clips
 
         def _run():
             import torch
@@ -122,11 +126,11 @@ class MMSTTSEngine(TextToSpeechEngine):
             inputs = tokenizer(text_in, return_tensors="pt")
             if settings.device.startswith("cuda"):
                 inputs = {k: v.to(settings.device) for k, v in inputs.items()}
-            with torch.no_grad():
+            with torch.inference_mode():
                 output = model(**inputs).waveform
-            return _floats_to_wav(output.squeeze().cpu().numpy(), MMS_SAMPLE_RATE)
+            return _floats_to_wav(output.squeeze().float().cpu().numpy(), MMS_SAMPLE_RATE)
 
-        wav_bytes = await asyncio.get_event_loop().run_in_executor(None, _run)
+        wav_bytes = await asyncio.get_event_loop().run_in_executor(tts_executor, _run)
         return SynthesizedClip(audio=wav_bytes, sample_rate=MMS_SAMPLE_RATE)
 
 

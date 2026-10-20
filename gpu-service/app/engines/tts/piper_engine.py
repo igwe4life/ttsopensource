@@ -34,6 +34,7 @@ from piper import PiperVoice
 
 from app.config import settings
 from app.engines.base import EngineLoadError, SynthesizedClip, TextToSpeechEngine, UnsupportedLanguageError
+from app.engines.tts.executor import tts_executor
 from app.engines.tts.piper_voices import ensure_voice
 from app.registry.language_registry import registry
 
@@ -161,7 +162,7 @@ class PiperEngine(TextToSpeechEngine):
 
         voice = self._voices[vid]
         loop = asyncio.get_event_loop()
-        wav_bytes = await loop.run_in_executor(None, _synthesize_wav_bytes, voice, text)
+        wav_bytes = await loop.run_in_executor(tts_executor, _synthesize_wav_bytes, voice, text)
         return SynthesizedClip(audio=wav_bytes, sample_rate=voice.config.sample_rate)
 
 
@@ -170,14 +171,32 @@ def _load_voice(path: str):
     CPU if the CUDA execution provider can't be created, so a missing or
     mismatched onnxruntime-gpu degrades to the old behavior instead of
     losing the voice."""
+    # Load on CPU first (cheap, version-agnostic), then swap in our own CUDA
+    # session: PiperVoice.load(use_cuda=True) builds one with onnxruntime's
+    # default arena, which grows by doubling per session and ran a 24 GB card
+    # out of memory with ~50 resident voices.
+    voice = PiperVoice.load(path, use_cuda=False)
     if settings.piper_use_cuda:
         try:
-            voice = PiperVoice.load(path, use_cuda=True)
-            return voice, _providers_of(voice)
+            voice.session = _cuda_session(path)
         except Exception:  # noqa: BLE001
-            log.warning("Piper CUDA load failed for %s, falling back to CPU", path, exc_info=True)
-    voice = PiperVoice.load(path, use_cuda=False)
+            log.warning("Piper CUDA session failed for %s, staying on CPU", path, exc_info=True)
     return voice, _providers_of(voice)
+
+
+def _cuda_session(path: str):
+    import onnxruntime as ort
+
+    options = {
+        "cudnn_conv_algo_search": "HEURISTIC",
+        "arena_extend_strategy": "kSameAsRequested",
+        "gpu_mem_limit": int(settings.piper_gpu_mem_mb) * 1024 * 1024,
+    }
+    return ort.InferenceSession(
+        path,
+        sess_options=ort.SessionOptions(),
+        providers=[("CUDAExecutionProvider", options), "CPUExecutionProvider"],
+    )
 
 
 def _diagnose_cuda(voices_dir: Path) -> dict:

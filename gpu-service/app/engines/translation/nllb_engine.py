@@ -111,7 +111,12 @@ class NLLBEngine(TranslationEngine):
                 )
                 if settings.device.startswith("cuda"):
                     kwargs = {k: v.to(settings.device) for k, v in kwargs.items()}
-                generated = self._model.generate(**kwargs, max_length=256)
+                # Cap the output length relative to the input: low-resource target
+                # languages can fall into repetition loops that run to the 256-token
+                # ceiling, which stalls the whole batch (and then becomes a very long
+                # TTS clip).
+                max_new = min(256, max(32, int(kwargs["input_ids"].shape[1] * 2.5) + 16))
+                generated = self._model.generate(**kwargs, max_new_tokens=max_new)
                 decoded.extend(self._tokenizer.batch_decode(generated, skip_special_tokens=True))
 
             out: dict[str, list[TranslatedSegment]] = {}
