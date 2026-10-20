@@ -94,6 +94,9 @@ class Settings:
         c.strip() for c in os.environ.get("PRELOAD_LANGUAGES", "").split(",") if c.strip()
     )
     preload_concurrency: int = _int("PRELOAD_CONCURRENCY", 4)
+    # Number of separate TTS worker PROCESSES (0 = synthesize inside the main process,
+    # the original behavior). See app/tts_workers.py for why and how.
+    tts_worker_procs: int = _int("TTS_WORKER_PROCS", 0)
 
     # --- Model pool / routing (section 7: intelligent model routing) --------
     max_loaded_tts_models: int = _int("MAX_LOADED_TTS_MODELS", 6)

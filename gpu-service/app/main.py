@@ -55,6 +55,12 @@ async def _startup() -> None:
         asyncio.create_task(preload.run(list(settings.preload_languages)))
 
 
+@app.on_event("shutdown")
+async def _shutdown() -> None:
+    if model_router.tts_worker_pool is not None:
+        model_router.tts_worker_pool.stop()
+
+
 async def _idle_eviction_loop() -> None:
     while True:
         await asyncio.sleep(60)

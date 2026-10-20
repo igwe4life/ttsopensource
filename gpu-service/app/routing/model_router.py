@@ -15,6 +15,7 @@ Routing rules (see docs/ARCHITECTURE.md for the full rationale):
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Optional
 
@@ -35,11 +36,16 @@ from app.engines.tts.piper_engine import PiperEngine
 from app.engines.tts.xtts_engine import XTTSEngine
 from app.registry.language_registry import registry
 from app.routing.model_pool import translation_pool, tts_pool
+from app.tts_workers import TTSWorkerPool
 
 log = logging.getLogger("router")
 
 # language -> last TTS error text; surfaced in /health (pod logs are unreachable on RunPod).
 tts_errors: dict[str, str] = {}
+
+# Set by startup() when TTS_WORKER_PROCS > 0: Piper/MMS synthesis then runs in separate
+# worker processes (see app/tts_workers.py) instead of in this process.
+tts_worker_pool: Optional[TTSWorkerPool] = None
 
 # ── Singletons — constructed once, reused for the life of the process ──────
 stt_engine = FasterWhisperEngine() if settings.stt_engine == "faster-whisper" else WhisperEngine()
@@ -60,6 +66,11 @@ _TTS_PRIORITY = ["piper", "xtts", "mms"]  # quality-descending fallback order
 async def startup() -> None:
     """Called once at app boot (see main.py). Loads the always-on shared
     models; per-language/per-pair models load lazily on first request."""
+    global tts_worker_pool
+    if settings.tts_worker_procs > 0:
+        # Start first: the workers download and load their voices while Whisper/NLLB load here.
+        tts_worker_pool = TTSWorkerPool(settings.tts_worker_procs, list(settings.preload_languages))
+        tts_worker_pool.start(asyncio.get_running_loop())
     await stt_engine.load()
     await nllb_engine.load()
     log.info("Shared STT (%s) and translation (%s) models loaded.", stt_engine.name, nllb_engine.name)
@@ -140,6 +151,15 @@ async def synthesize(
     if entry is None or not entry.tts_supported:
         raise UnsupportedLanguageError(f"{language_code} has no TTS route configured")
 
+    if tts_worker_pool is not None and entry.tts_engine in ("piper", "mms"):
+        try:
+            clip, engine_name = await tts_worker_pool.synthesize(language_code, text)
+            tts_errors.pop(language_code, None)
+            return clip, engine_name
+        except Exception as e:  # noqa: BLE001
+            tts_errors[language_code] = f"{type(e).__name__}: {e}"[:240]
+            raise UnsupportedLanguageError(f"TTS worker failed for {language_code}: {e}") from e
+
     tried = []
     last_error = None
     preferred = [entry.tts_engine] + [e for e in _TTS_PRIORITY if e != entry.tts_engine]
@@ -178,4 +198,5 @@ def status() -> dict:
         "tts_pool": tts_pool.stats(),
         "piper": piper_engine.info(),
         "tts_errors": dict(tts_errors),
+        "tts_workers": tts_worker_pool.status() if tts_worker_pool else None,
     }

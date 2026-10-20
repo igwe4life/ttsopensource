@@ -53,7 +53,25 @@ async def _one(code: str, sem: asyncio.Semaphore) -> None:
             _state["done"] += 1
 
 
+async def _run_with_workers(pool) -> None:
+    """The worker processes load their own shard; just mirror their progress."""
+    _state.update(total=len(pool.languages), done=0, ready=False, failed={}, started=time.time(), seconds=None)
+    while True:
+        st = pool.status()
+        _state["done"] = sum(w["done"] for w in st["workers"])
+        _state["failed"] = {lang: err for w in st["workers"] for lang, err in w["failed"].items()}
+        if st["ready"]:
+            break
+        await asyncio.sleep(1)
+    _state["ready"] = True
+    _state["seconds"] = round(time.time() - _state["started"], 1)
+    log.info("worker preload finished in %ss, failed=%s", _state["seconds"], list(_state["failed"]))
+
+
 async def run(languages: list[str]) -> None:
+    if model_router.tts_worker_pool is not None:
+        await _run_with_workers(model_router.tts_worker_pool)
+        return
     _state.update(total=len(languages), done=0, ready=False, failed={}, started=time.time(), seconds=None)
     sem = asyncio.Semaphore(max(1, settings.preload_concurrency))
     await asyncio.gather(*(_one(c, sem) for c in languages))
