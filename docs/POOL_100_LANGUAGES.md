@@ -80,7 +80,22 @@ CPU cores avoid both the GIL and GPU time-slicing between processes. **The real 
 the chunker keeps a 750 ms overlap, so a new chunk arrives every 3.25 s and anything slower is dropped.
 So 25 languages/pod is workable (~7% drops on dense speech); 17–20/pod (3 pods for 50) should drop ~1–2%.
 
-**The RTMP server (web.homestream.live / 184.94.212.59) went down during testing**: it refused TCP connections
+### Full 50-stream end-to-end test — PASSED (2026-10-20, RTMP server back up)
+
+2 x RTX 3090 (32 vCPU, EU-CZ-1, $0.50/hr each; 12 worker procs, CPU Piper, 25 languages each) + one 8 vCPU
+orchestrator pod ($0.24/hr) with SOURCE_RELAY on, pushing all 50 pool-50 languages to test keys (prefix `s50-`):
+
+- 50 of 50 RTMP pushers alive and staying alive; both GPU nodes connected; 0 failed languages.
+- Chunk wall time avg ~2.4 s, max ~3.8 s; GPU time ~2.1 s (STT 0.7 s, fan-out ~1.4 s).
+- **~4% of chunks dropped** in steady state (the effective budget is 3.25 s because of the 750 ms overlap).
+- 10 sampled streams (Piper and African MMS languages) read back from the server: 25 fps, normal audio levels
+  (one Hindi sample showed a transient stall that was gone on re-read).
+- Orchestrator pod CPU: ~1.5 of 8 cores. Total running cost ~$1.24/hr for 50 streams.
+
+Only es/fr/de have real stream keys; the other 47 would publish to `<prefix><code>` keys until real keys are supplied.
+Per-language order for round-robin sharding is in `language-registry/pool-50.json`.
+
+**Earlier the RTMP server (web.homestream.live / 184.94.212.59) went down during testing**: it refused TCP connections
 on ports 1935, 80 and 443 from both RunPod and the dev PC, so end-to-end streaming could not be verified for the
 final configuration. Check it before any further stream test. (Earlier tests: 50 streams delivered a clean 25 fps;
 100 streams degraded — see above.)
