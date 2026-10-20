@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import io
 import logging
+import threading
 import wave
 from pathlib import Path
 from typing import Optional
@@ -248,9 +249,28 @@ def _providers_of(voice) -> list[str]:
         return ["unknown"]
 
 
+# Piper synthesis is NOT safe to run from several threads at once: live tests showed
+# 8 parallel requests to one voice failing 6 times with "# channels not specified"
+# (the voice yielded zero audio chunks), and ~60% of Piper languages failing when a
+# 50-language chunk synthesized them concurrently — while each voice worked alone.
+# One clip is only tens of milliseconds on the GPU, so serializing costs little; MMS
+# (a separate engine) stays parallel.
+_PIPER_LOCK = threading.Lock()
+
+
 def _synthesize_wav_bytes(voice: "PiperVoice", text: str) -> bytes:
     """Runs on a worker thread — onnxruntime inference is synchronous/blocking."""
-    buf = io.BytesIO()
-    with wave.open(buf, "wb") as wav_file:
-        voice.synthesize_wav(text, wav_file)
-    return buf.getvalue()
+    with _PIPER_LOCK:
+        buf = io.BytesIO()
+        try:
+            with wave.open(buf, "wb") as wav_file:
+                voice.synthesize_wav(text, wav_file)
+        except wave.Error as e:
+            # The voice produced no audio at all. Say whether the phonemizer was the
+            # reason, since pod logs are unreachable.
+            try:
+                lengths = [len(sent) for sent in voice.phonemize(text)]
+            except Exception as pe:  # noqa: BLE001
+                lengths = f"phonemize raised {type(pe).__name__}: {pe}"
+            raise RuntimeError(f"no audio produced ({e}); phoneme sentence lengths={lengths}") from e
+        return buf.getvalue()
