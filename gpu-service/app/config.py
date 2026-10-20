@@ -81,6 +81,10 @@ class Settings:
     # with the GIL, extra threads only add contention.
     tts_workers: int = _int("TTS_WORKERS", 12)
     mms_fp16: bool = _bool("MMS_FP16", False)
+    # Threads per Piper ONNX session when Piper runs on the CPU (PIPER_USE_CUDA=false).
+    # onnxruntime's default is "every core" per session, which with several worker
+    # processes oversubscribes the machine and stalls everything.
+    piper_cpu_threads: int = _int("PIPER_CPU_THREADS", 2)
     piper_use_cuda: bool = os.environ.get("PIPER_USE_CUDA", "true").lower() == "true"
     xtts_model_id: str = os.environ.get("XTTS_MODEL_ID", "coqui/XTTS-v2")
     mms_tts_model_template: str = os.environ.get(

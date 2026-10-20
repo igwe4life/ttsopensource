@@ -184,7 +184,19 @@ def _load_voice(path: str):
             voice.session = _cuda_session(path)
         except Exception:  # noqa: BLE001
             log.warning("Piper CUDA session failed for %s, staying on CPU", path, exc_info=True)
+    else:
+        voice.session = _cpu_session(path)  # thread-limited (see PIPER_CPU_THREADS)
     return voice, _providers_of(voice)
+
+
+def _cpu_session(path: str):
+    import onnxruntime as ort
+
+    so = ort.SessionOptions()
+    so.intra_op_num_threads = max(1, int(settings.piper_cpu_threads))
+    so.inter_op_num_threads = 1
+    so.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+    return ort.InferenceSession(path, sess_options=so, providers=["CPUExecutionProvider"])
 
 
 def _cuda_session(path: str):
@@ -303,7 +315,5 @@ def _synthesize_wav_bytes(voice: "PiperVoice", text: str) -> bytes:
             if "piper synthesis failed" not in str(first) or "CUDAExecutionProvider" not in _providers_of(voice):
                 raise
             log.warning("Piper GPU synthesis failed (%s); moving this voice to CPU", first)
-            import onnxruntime as ort
-
-            voice.session = ort.InferenceSession(voice._ttsopen_path, providers=["CPUExecutionProvider"])
+            voice.session = _cpu_session(voice._ttsopen_path)
             return _write_wav(voice, text)
