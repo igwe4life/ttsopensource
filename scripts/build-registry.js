@@ -27,6 +27,7 @@
  * docs/LANGUAGE_COVERAGE.md.
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
+import { applyPoolLanguages, poolFileContents, POOL_FILE } from './add-pool-languages.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -274,6 +275,10 @@ const registry = {
   total_languages: codes.length,
   languages: codes.map(buildEntry),
 };
+
+// Last step: route the 100 broadcast languages to verified voices (see add-pool-languages.js).
+const poolOrdered = applyPoolLanguages(registry);
+writeFileSync(POOL_FILE, poolFileContents(poolOrdered), 'utf8');
 
 mkdirSync(path.dirname(OUT), { recursive: true });
 writeFileSync(OUT, JSON.stringify(registry, null, 2) + '\n', 'utf8');
