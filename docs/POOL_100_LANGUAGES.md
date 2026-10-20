@@ -36,18 +36,34 @@ GPUs. Cause not isolated (RTMP server vs. pod egress vs. relay); a read-from-dis
 
 ## Known problems (deferred by the user)
 
-1. **Piper in the pooled image**: for most Piper languages (including es/fr/de) synthesis fails *intermittently
-   and per language/chunk* with `wave.Error: # channels not specified` (the voice produced zero audio chunks).
-   Voices work alone via `/tts` with natural text; NLLB single-language translation is fine. It happens via the
-   WebSocket path (`translate_many` → `translate_multi`), so the suspect is the batched translation returning
-   empty/unusable text for some language+chunk combinations (or a Piper regression from this build). The
-   production stack (older image) is unaffected — **do not move es/fr/de to the new image until fixed.**
-   Next step: make failures include the text, and fall back to the single-language translate when a batched
-   result is empty.
+1. **Piper "# channels not specified" — FIXED (commit 7fd0719).** Not a translation or concurrency
+   problem. When GPU inference failed for a longer sentence (the 256 MB per-voice CUDA arena cap added to stop a
+   VRAM blowup was too small; only sentences of ~60+ phonemes failed), `with wave.open(...)` closed an empty file
+   and its "# channels not specified" error *replaced the real exception*. Now: real errors are reported, a voice
+   whose GPU run fails moves to a CPU session and retries, each voice has its own lock, cuDNN max-workspace is off
+   and the arena cap is 512 MB. Verified: 50/50 languages (36 Piper + 14 MMS) produce audio on every chunk with
+   zero errors and zero CPU fallbacks. es/fr/de can now move to the pool.
 2. Piper voices for lt, th, he, ja need special phonemizers the installed piper-tts lacks; th/he use MMS,
    lt/ja were swapped for ilo/war.
 3. MMS-TTS checkpoints are CC-BY-NC 4.0 (non-commercial).
 4. 24 GB cards are enough for ~25 voices + Whisper + NLLB per pod (~15 GB free after preload).
+
+## 50-stream pool (pool-50.json: 36 Piper + 14 MMS, 13 African) — results 2026-10-20
+
+| Setup | Result |
+|---|---|
+| 2 × A5000/A4500 (9–12 vCPU), 25 languages each | live GPU time ~6–7 s per 4 s chunk, ~half the chunks dropped |
+| 2 × RTX 3090 (32 vCPU), 25 languages each | test chunks 1.5–3.7 s (spikes to 6–7 s on dense speech); live ~4.4 s avg, 22 of 54 chunks dropped |
+
+The limit is Python, not the GPU: per language-chunk the service spends ~0.1–0.15 s of GIL-bound CPU
+(phonemizing, tokenizing, WAV encoding, numpy), so 25 languages/pod ≈ 3.5 s serial. Options to hit the 4 s budget:
+(a) 4 × 3090 for 50 languages (~$2.0/hr + CPU pod), or (b) run TTS in several worker *processes* per pod
+(a 3090 pod has 32 vCPUs; not built yet) so 2 pods suffice (~$1.0/hr), or (c) fewer languages per pod.
+
+**The RTMP server (web.homestream.live / 184.94.212.59) went down during testing**: it refused TCP connections
+on ports 1935, 80 and 443 from both RunPod and the dev PC, so end-to-end streaming could not be verified for the
+final configuration. Check it before any further stream test. (Earlier tests: 50 streams delivered a clean 25 fps;
+100 streams degraded — see above.)
 
 ## Cost reference
 

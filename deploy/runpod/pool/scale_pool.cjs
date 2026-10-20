@@ -14,13 +14,13 @@ const call = (method, path, body) => fetch('https://rest.runpod.io/v1' + path, {
 (async () => {
   while (pods.length < target) {
     const i = pods.length;
-    const body = { name: `ttsopensource-pool-${i}`, imageName: `ghcr.io/igwe4life/ttsopensource-gpu:${tag}`, gpuTypeIds: ['NVIDIA GeForce RTX 3090', 'NVIDIA RTX A5000', 'NVIDIA GeForce RTX 4090', 'NVIDIA RTX A4500'], gpuTypePriority: 'custom', gpuCount: 1, cloudType: 'SECURE',
+    const body = { name: `ttsopensource-pool-${i}`, imageName: `ghcr.io/igwe4life/ttsopensource-gpu:${tag}`, gpuTypeIds: ['NVIDIA GeForce RTX 3090'], gpuTypePriority: 'custom', gpuCount: 1, cloudType: 'SECURE',
       containerDiskInGb: 50, volumeInGb: 40, volumeMountPath: '/root/.cache/huggingface', ports: ['8000/http'],
       env: { DEVICE: 'cuda', GPU_PROVIDER: 'runpod', GPU_SERVICE_API_KEY: GPU_KEY, PRELOAD_LANGUAGES: shards[i].join(','), PRELOAD_CONCURRENCY: '6', MAX_LOADED_TTS_MODELS: '80', NLLB_MAX_BATCH: '64', PIPER_VOICES_DIR: '/root/.cache/huggingface/piper' } };
     let landed = null;
-    for (let a = 1; a <= 40 && !landed; a++) {
+    for (let a = 1; a <= 12 && !landed; a++) {
       const out = await (await call('POST', '/pods', body)).json();
-      if (out.id) { if (out.costPerHr <= 0.95) landed = out; else { console.log(`pod ${i}: $${out.costPerHr} over cap, deleting`); await call('DELETE', '/pods/' + out.id); } }
+      if (out.id) { if (out.costPerHr <= 0.6) landed = out; else { console.log(`pod ${i}: $${out.costPerHr} over cap, deleting`); await call('DELETE', '/pods/' + out.id); } }
       if (!landed) await new Promise((r) => setTimeout(r, 8000));
     }
     if (!landed) { console.log(`pod ${i}: could not allocate`); break; }
