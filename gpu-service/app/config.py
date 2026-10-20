@@ -76,7 +76,7 @@ class Settings:
     # see PiperEngine._load_voice and the "piper" block in /health.
     # Per-voice cap on onnxruntime's CUDA memory arena (MB). Without a cap each
     # session's arena grows by doubling and ~50 resident voices exhaust a 24 GB card.
-    piper_gpu_mem_mb: int = _int("PIPER_GPU_MEM_MB", 256)
+    piper_gpu_mem_mb: int = _int("PIPER_GPU_MEM_MB", 512)
     # Threads used for TTS synthesis. Far fewer than the default executor's ~36:
     # with the GIL, extra threads only add contention.
     tts_workers: int = _int("TTS_WORKERS", 12)

@@ -177,6 +177,8 @@ def _load_voice(path: str):
     # default arena, which grows by doubling per session and ran a 24 GB card
     # out of memory with ~50 resident voices.
     voice = PiperVoice.load(path, use_cuda=False)
+    voice._ttsopen_path = path  # for the CPU fallback in _synthesize_wav_bytes
+    voice._ttsopen_lock = threading.Lock()  # one inference at a time per session
     if settings.piper_use_cuda:
         try:
             voice.session = _cuda_session(path)
@@ -190,6 +192,9 @@ def _cuda_session(path: str):
 
     options = {
         "cudnn_conv_algo_search": "HEURISTIC",
+        # The default workspace policy reserves the largest cuDNN workspace it can; with
+        # ~25 resident voices that is what exhausted the card. Keep it small.
+        "cudnn_conv_use_max_workspace": "0",
         "arena_extend_strategy": "kSameAsRequested",
         "gpu_mem_limit": int(settings.piper_gpu_mem_mb) * 1024 * 1024,
     }
@@ -255,22 +260,50 @@ def _providers_of(voice) -> list[str]:
 # 50-language chunk synthesized them concurrently — while each voice worked alone.
 # One clip is only tens of milliseconds on the GPU, so serializing costs little; MMS
 # (a separate engine) stays parallel.
-_PIPER_LOCK = threading.Lock()
+def _write_wav(voice: "PiperVoice", text: str) -> bytes:
+    """Synthesize to WAV bytes WITHOUT letting wave hide the real error.
+
+    Using `with wave.open(...)` here masked every inference failure: when
+    synthesize_wav raised, the context manager's close() raised
+    "# channels not specified" (nothing had been written) and that replaced the
+    original exception. So close explicitly and report what actually happened."""
+    buf = io.BytesIO()
+    wav_file = wave.open(buf, "wb")
+    try:
+        voice.synthesize_wav(text, wav_file)
+    except Exception as e:  # noqa: BLE001
+        try:
+            wav_file.close()
+        except Exception:  # noqa: BLE001
+            pass
+        raise RuntimeError(f"piper synthesis failed: {type(e).__name__}: {e}"[:300]) from e
+    try:
+        wav_file.close()
+    except wave.Error as e:
+        try:
+            lengths = [len(sent) for sent in voice.phonemize(text)]
+        except Exception as pe:  # noqa: BLE001
+            lengths = f"phonemize raised {type(pe).__name__}: {pe}"
+        raise RuntimeError(f"no audio produced ({e}); phoneme sentence lengths={lengths}") from e
+    return buf.getvalue()
 
 
 def _synthesize_wav_bytes(voice: "PiperVoice", text: str) -> bytes:
-    """Runs on a worker thread — onnxruntime inference is synchronous/blocking."""
-    with _PIPER_LOCK:
-        buf = io.BytesIO()
+    """Runs on a worker thread — onnxruntime inference is synchronous/blocking.
+
+    The same voice (one ONNX session) is never run twice at once. If the GPU run fails
+    (e.g. out of memory on a long sentence) the voice is moved to a CPU session for good
+    and the clip is retried, so one bad run cannot silence a language."""
+    with voice._ttsopen_lock:
         try:
-            with wave.open(buf, "wb") as wav_file:
-                voice.synthesize_wav(text, wav_file)
-        except wave.Error as e:
-            # The voice produced no audio at all. Say whether the phonemizer was the
-            # reason, since pod logs are unreachable.
-            try:
-                lengths = [len(sent) for sent in voice.phonemize(text)]
-            except Exception as pe:  # noqa: BLE001
-                lengths = f"phonemize raised {type(pe).__name__}: {pe}"
-            raise RuntimeError(f"no audio produced ({e}); phoneme sentence lengths={lengths}") from e
-        return buf.getvalue()
+            return _write_wav(voice, text)
+        except RuntimeError as first:
+            # Only an inference failure on the GPU is worth a CPU retry; a voice that
+            # produced no audio from the text itself would fail the same way on CPU.
+            if "piper synthesis failed" not in str(first) or "CUDAExecutionProvider" not in _providers_of(voice):
+                raise
+            log.warning("Piper GPU synthesis failed (%s); moving this voice to CPU", first)
+            import onnxruntime as ort
+
+            voice.session = ort.InferenceSession(voice._ttsopen_path, providers=["CPUExecutionProvider"])
+            return _write_wav(voice, text)
