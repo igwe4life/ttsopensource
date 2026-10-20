@@ -29,14 +29,19 @@ const POOL = path.join(DIR, 'pool-languages.json');
 
 // ── Piper voices verified present (HTTP 200) — only the ones the registry
 // did NOT already route to Piper. Already-routed Piper languages (ar bg ca cs
-// cy da de el es et fa fi fr hu is it ka kk lt lv ne nl no pl pt ro ru sk sl
-// sr sv sw tr uk vi zh) are untouched.
+// cy da de el es et fa fi fr hu is it ka kk lv ne nl no pl pt ro ru sk sl sr sv
+// sw tr uk vi zh) are untouched.
+//
+// NOT used even though a Piper voice exists: lt, th, he, ja. Those voices need
+// special phonemizers (phoneme_type lithuanian/thai/hebrew/japanese) that the
+// installed piper-tts does not support (it raised "'lithuanian' is not a valid
+// PhonemeType"). th and he use MMS instead; lt and ja are replaced by ilo and war.
 const PIPER_VOICES = {
-  hi: 'hi_IN-pratham-medium', id: 'id_ID-news_tts-medium', th: 'th_TH-tsync2-medium',
-  bn: 'bn_BD-google-medium', he: 'he_IL-saspeech-medium', eu: 'eu_ES-antton-medium',
+  hi: 'hi_IN-pratham-medium', id: 'id_ID-news_tts-medium',
+  bn: 'bn_BD-google-medium', eu: 'eu_ES-antton-medium',
   ml: 'ml_IN-arjun-medium', mr: 'mr_IN-google-medium', te: 'te_IN-maya-medium',
   sq: 'sq_AL-edon-medium', ur: 'ur_PK-fasih-medium', hy: 'hy_AM-gor-medium',
-  lb: 'lb_LU-marylux-medium', ko: 'ko_KR-kss-medium', ja: 'ja_JP-hi_fi_captain-medium',
+  lb: 'lb_LU-marylux-medium', ko: 'ko_KR-kss-medium',
   ku: 'ku_TR-berfin_renas-medium',
 };
 
@@ -44,11 +49,11 @@ const PIPER_VOICES = {
 const MMS_IDS = {
   // existing registry rows: fix id / enable
   mg: 'mlg', mn: 'mon', gu: 'guj', kn: 'kan', lo: 'lao', pa: 'pan', tl: 'tgl',
-  az: 'azj-script_latin', ms: 'zlm', ta: 'tam',
+  az: 'azj-script_latin', ms: 'zlm', ta: 'tam', he: 'heb', th: 'tha',
   // new rows below
   ceb: 'ceb', ak: 'aka', om: 'orm', ti: 'tir', lg: 'lug', ny: 'nya', bm: 'bam', ki: 'kik',
   ee: 'ewe', ts: 'tso', rn: 'run', sag: 'sag', mos: 'mos', kab: 'kab', fon: 'fon',
-  kbp: 'kbp', bem: 'bem', ay: 'ayr', gn: 'grn', qu: 'quy', ky: 'kir',
+  kbp: 'kbp', bem: 'bem', ay: 'ayr', gn: 'grn', qu: 'quy', ky: 'kir', ilo: 'ilo', war: 'war',
 };
 
 // Existing rows that have a voice but were missing their NLLB-200 code.
@@ -78,15 +83,21 @@ const NEW_ROWS = {
   gn: ['Guarani', "Avañe'ẽ", 'grn_Latn'],
   qu: ['Quechua', 'Runasimi', 'quy_Latn'],
   ky: ['Kyrgyz', 'Кыргызча', 'kir_Cyrl'],
+  ilo: ['Ilocano', 'Ilokano', 'ilo_Latn'],
+  war: ['Waray', 'Winaray', 'war_Latn'],
 };
 
-// The 100 broadcast languages, ordered so that taking every Nth entry gives
-// each GPU shard an even mix of Piper and MMS voices (MMS is the slower path).
-const PIPER_CODES = ('ar bg ca cs cy da de el es et fa fi fr hu is it ka kk lt lv ne nl no pl pt ro ru sk sl sr sv sw tr uk vi zh '
+// The 100 broadcast languages, ordered so that round-robin sharding (entry i ->
+// shard i % N, for N = 2 or 4) gives every shard an even mix of Piper and MMS
+// voices — MMS is the slower path, so a shard of all-MMS would be the bottleneck.
+// Pattern (period 8): P P M M M M P P — balanced for both 2 and 4 shards.
+const PIPER_CODES = ('ar bg ca cs cy da de el es et fa fi fr hu is it ka kk lv ne nl no pl pt ro ru sk sl sr sv sw tr uk vi zh '
   + Object.keys(PIPER_VOICES).join(' ')).split(' ');
 const MMS_CODES = ('am as ff fo ha ht jw km my rw sn so su tg tt tw yo ' + Object.keys(MMS_IDS).join(' ')).split(' ');
 // (la, bo excluded on purpose: Latin / Tibetan are not useful broadcast targets;
 // ba excluded: Bashkir is not in NLLB-200, so it cannot be translated into.)
+
+const PATTERN = 'PPMMMMPP';
 
 function computeStatus(e) {
   if (!e.translation_supported || !e.tts_supported) return 'unsupported';
@@ -139,9 +150,9 @@ export function applyPoolLanguages(reg) {
   // Already-routed languages keep their route but must be enabled for broadcast.
   const ordered = [];
   const pi = [...new Set(PIPER_CODES)], mi = [...new Set(MMS_CODES)];
-  for (let i = 0; i < Math.max(pi.length, mi.length); i++) {
-    if (i < pi.length) ordered.push(pi[i]);
-    if (i < mi.length) ordered.push(mi[i]);
+  for (let i = 0, a = 0, b = 0; a < pi.length || b < mi.length; i++) {
+    const fromPiper = (PATTERN[i % 8] === 'P' && a < pi.length) || b >= mi.length;
+    if (fromPiper) ordered.push(pi[a++]); else ordered.push(mi[b++]);
   }
   const problems = [];
   for (const code of ordered) {
