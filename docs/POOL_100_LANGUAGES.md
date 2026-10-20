@@ -60,6 +60,26 @@ The limit is Python, not the GPU: per language-chunk the service spends ~0.1–0
 (a) 4 × 3090 for 50 languages (~$2.0/hr + CPU pod), or (b) run TTS in several worker *processes* per pod
 (a 3090 pod has 32 vCPUs; not built yet) so 2 pods suffice (~$1.0/hr), or (c) fewer languages per pod.
 
+### TTS worker processes (TTS_WORKER_PROCS) — measured 2026-10-20
+
+One RTX 3090 (32 vCPU), the 25-language shard of pool-50 (18 Piper + 7 MMS), live speech through the real orchestrator:
+
+| Configuration | GPU time / chunk | Notes |
+|---|---|---|
+| 1 process (before) | ~4.4 s | ~40% of chunks dropped |
+| 4 workers, Piper on GPU | ~3.3 s | ~19% dropped |
+| 8 workers, Piper on GPU | ~3.0 s | diminishing returns |
+| 8 workers, Piper on CPU, no thread limit | timeouts | every session grabbed all 32 cores |
+| **12 workers, Piper on CPU, 2 threads each** | **~2.1–2.5 s** | wall avg 2.5 s, max 3.6 s, **~7% dropped** |
+
+Defaults in `deploy/runpod/pool/*.cjs` are now `TTS_WORKER_PROCS=12 PIPER_USE_CUDA=false PIPER_CPU_THREADS=2`.
+
+Findings behind this: in isolation an MMS clip takes only 50–95 ms but a Piper clip ~225 ms (Arabic 600–900 ms,
+its diacritizer), and Piper is too small a model to benefit from the GPU; separate processes running Piper on
+CPU cores avoid both the GIL and GPU time-slicing between processes. **The real time budget is ~3.25 s, not 4 s:**
+the chunker keeps a 750 ms overlap, so a new chunk arrives every 3.25 s and anything slower is dropped.
+So 25 languages/pod is workable (~7% drops on dense speech); 17–20/pod (3 pods for 50) should drop ~1–2%.
+
 **The RTMP server (web.homestream.live / 184.94.212.59) went down during testing**: it refused TCP connections
 on ports 1935, 80 and 443 from both RunPod and the dev PC, so end-to-end streaming could not be verified for the
 final configuration. Check it before any further stream test. (Earlier tests: 50 streams delivered a clean 25 fps;

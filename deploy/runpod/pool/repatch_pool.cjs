@@ -22,9 +22,11 @@ langs.forEach((l, i) => shards[i % n].push(l));
       imageName: `ghcr.io/igwe4life/ttsopensource-gpu:${tag}`,
       env: {
         DEVICE: 'cuda', GPU_PROVIDER: 'runpod', GPU_SERVICE_API_KEY: GPU_KEY,
-        PRELOAD_LANGUAGES: shards[i].join(','), PRELOAD_CONCURRENCY: '6',
+        PRELOAD_LANGUAGES: (p.shard || shards[i]).join(','), PRELOAD_CONCURRENCY: '6',
         MAX_LOADED_TTS_MODELS: '80', NLLB_MAX_BATCH: '64',
         PIPER_VOICES_DIR: '/root/.cache/huggingface/piper',
+        // best measured settings (see docs/POOL_100_LANGUAGES.md): CPU Piper in 12 worker processes
+        TTS_WORKER_PROCS: '12', PIPER_USE_CUDA: 'false', PIPER_CPU_THREADS: '2',
         ...extra,
       },
     };
@@ -32,7 +34,7 @@ langs.forEach((l, i) => shards[i % n].push(l));
       method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RUNPOD_KEY}` }, body: JSON.stringify(body),
     });
     console.log(`pod ${i} ${p.id}: PATCH -> HTTP ${r.status} | shard ${shards[i].length} languages | extra env: ${Object.keys(extra).join(',') || 'none'}`);
-    p.shard = shards[i];
+    p.shard = p.shard || shards[i];
   }
   fs.writeFileSync(SP + '/pool_pods.json', JSON.stringify(pods));
 })();

@@ -12,11 +12,12 @@ const pods = JSON.parse(fs.readFileSync(SP + '/pool_pods.json', 'utf8'));
 const shards = Array.from({ length: target }, () => []); langs.forEach((l, i) => shards[i % target].push(l));
 const call = (method, path, body) => fetch('https://rest.runpod.io/v1' + path, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RUNPOD_KEY}` }, body: body && JSON.stringify(body) });
 (async () => {
-  while (pods.length < target) {
+  // ONLY_PODS=1 creates just the first pod of the <targetPods>-way split (single-pod tests).
+  while (pods.length < Math.min(target, Number(process.env.ONLY_PODS || target))) {
     const i = pods.length;
     const body = { name: `ttsopensource-pool-${i}`, imageName: `ghcr.io/igwe4life/ttsopensource-gpu:${tag}`, gpuTypeIds: ['NVIDIA GeForce RTX 3090'], gpuTypePriority: 'custom', gpuCount: 1, cloudType: 'SECURE',
       containerDiskInGb: 50, volumeInGb: 40, volumeMountPath: '/root/.cache/huggingface', ports: ['8000/http'],
-      env: { DEVICE: 'cuda', GPU_PROVIDER: 'runpod', GPU_SERVICE_API_KEY: GPU_KEY, PRELOAD_LANGUAGES: shards[i].join(','), PRELOAD_CONCURRENCY: '6', MAX_LOADED_TTS_MODELS: '80', NLLB_MAX_BATCH: '64', PIPER_VOICES_DIR: '/root/.cache/huggingface/piper' } };
+      env: { DEVICE: 'cuda', GPU_PROVIDER: 'runpod', GPU_SERVICE_API_KEY: GPU_KEY, PRELOAD_LANGUAGES: shards[i].join(','), PRELOAD_CONCURRENCY: '6', MAX_LOADED_TTS_MODELS: '80', NLLB_MAX_BATCH: '64', PIPER_VOICES_DIR: '/root/.cache/huggingface/piper', TTS_WORKER_PROCS: '12', PIPER_USE_CUDA: 'false', PIPER_CPU_THREADS: '2', ...(process.env.EXTRA_ENV ? JSON.parse(process.env.EXTRA_ENV) : {}) } };
     let landed = null;
     for (let a = 1; a <= 12 && !landed; a++) {
       const out = await (await call('POST', '/pods', body)).json();
