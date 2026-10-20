@@ -107,7 +107,26 @@ async def process_segment(
             full_text = " ".join(seg.text for seg in translated)
             clip: SynthesizedClip
             t1 = time.perf_counter()
-            clip, s_engine = await model_router.synthesize(full_text, language_code=lang)
+            try:
+                clip, s_engine = await model_router.synthesize(full_text, language_code=lang)
+            except UnsupportedLanguageError as first_err:
+                # The batched translation can hand a voice text it cannot say (seen live:
+                # Piper produced zero audio chunks for some language/chunk combinations
+                # while the same voices work on ordinary text). Retry ONCE with the
+                # single-language translation path, and say what the text was if it
+                # still fails — pod logs are unreachable on RunPod.
+                retry_text = None
+                try:
+                    again, t_engine2 = await model_router.translate(english_segments, source_lang="en", target_lang=lang)
+                    retry_text = " ".join(seg.text for seg in again).strip()
+                except Exception:  # noqa: BLE001
+                    pass
+                if retry_text and retry_text != full_text.strip():
+                    clip, s_engine = await model_router.synthesize(retry_text, language_code=lang)
+                    full_text, t_engine = retry_text, f"{t_engine2}+retry"
+                    log.warning("TTS retry with single-language translation fixed %s", lang)
+                else:
+                    raise UnsupportedLanguageError(f"{first_err} [text={full_text[:80]!r}]") from first_err
             tts_ms = int((time.perf_counter() - t1) * 1000)
             return LanguageResult(
                 language_code=lang,
