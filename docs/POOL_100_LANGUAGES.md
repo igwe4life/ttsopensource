@@ -122,6 +122,19 @@ To add real keys for more languages: put `code:KEY` pairs in `RTMP_STREAM_KEYS` 
 the orchestrator pod (or PATCH its env). The orchestrator pod's `/health` (port 4000) shows pushers, relay, GPU
 nodes and rolling chunk timings; the GPU pods' `/health` shows `models.tts_workers` and `preload`.
 
+## Shared model volume (network volume)
+
+RunPod "pod volumes" die with their pod, so the models are kept on a **network volume**:
+`ttsopensource-models`, 40 GB, datacenter **EU-CZ-1**, id `5prlw0f4nb` (about $0.07/GB/month = ~$2.80/month).
+It holds the Whisper + NLLB caches and the Piper/MMS voices for all 50 pool-50 languages (filled by
+`deploy/runpod/pool/make_model_volume.cjs`: a temporary 3090 pod preloaded all 50 voices, 0 failures, then was deleted).
+
+Use it by exporting `NETWORK_VOLUME_ID=5prlw0f4nb` before `scale_pool.cjs`: pods then mount it at
+`/root/.cache/huggingface` and skip the downloads (expected start ~1-2 min instead of 5-7). Caveats: pods that mount it
+are pinned to EU-CZ-1 (where the 3090s have usually been available), and several pods can mount it at once.
+To rebuild it for a different language list: `POOL_FILE=<list> node make_model_volume.cjs <image-tag> 40 EU-CZ-1`
+(or set `NETWORK_VOLUME_ID` to refill an existing one). Delete it from the RunPod console if no longer wanted.
+
 ## Cost reference
 
 RTX 3090 $0.50/hr (RTX 4090 $0.89/hr was faster for MMS), 16 vCPU CPU pod $0.48/hr, A40 $0.59/hr.
