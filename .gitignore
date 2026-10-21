@@ -36,3 +36,4 @@ deploy/runpod/_*
 # per-run state written by deploy/runpod/pool scripts
 deploy/runpod/pool/pool_pods.json
 deploy/runpod/pool/cpu_pool_pod.txt
+deploy/runpod/pool/model_volume.json
