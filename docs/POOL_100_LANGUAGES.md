@@ -122,6 +122,23 @@ To add real keys for more languages: put `code:KEY` pairs in `RTMP_STREAM_KEYS` 
 the orchestrator pod (or PATCH its env). The orchestrator pod's `/health` (port 4000) shows pushers, relay, GPU
 nodes and rolling chunk timings; the GPU pods' `/health` shows `models.tts_workers` and `preload`.
 
+## Current production (2026-10-23): 78 languages on the new RTMP server
+
+- RTMP server: `rtmp://sidub.homestream.live/live` (the old `web.homestream.live` stopped serving published streams
+  when 100 publishers connected; it is no longer used).
+- 78 of the 100 pool languages have real stream keys (supplied by the user as a CSV; keys live only in the local
+  `orchestrator/.env` `RTMP_STREAM_KEYS` and the orchestrator pod's environment, never in git). The other 22 have no
+  key yet and are neither processed nor published: eu ml mr te sag mos kab fon sq ur hy lb kbp bem ay gn ko ku qu ky ilo war.
+- 4 x RTX 3090 GPU pods (each holds 25 languages from the 100-language layout, 12 worker procs, CPU Piper) + one 8 vCPU
+  orchestrator pod; ~$2.5/hr plus the user's two Ubuntu servers.
+- To run fewer languages than the GPU layout holds, set the orchestrator's `TARGET_LANGUAGES` to a list **ordered so that
+  position i belongs to the pod that holds that language (pod = index in pool-languages.json mod 4)**; otherwise the voice
+  is lazy-loaded on a foreign pod. (A `PUSH_LANGUAGES` option exists in the repo for publishing a subset while processing all,
+  but its image build timed out on GitHub and may not be published yet.)
+- Measured from inside RunPod: 10 of 12 streams delivered a full 25 fps and 9 of 10 simultaneous readers did too.
+  Readings from a home connection looked worse (that was the reader's link). Chunk drops run ~8-13%.
+- All pushers read one shared source relay, so a hiccup in the source stream restarts every pusher together (back within seconds).
+
 ## Shared model volume (network volume)
 
 RunPod "pod volumes" die with their pod, so the models are kept on a **network volume**:
