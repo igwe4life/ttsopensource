@@ -26,11 +26,16 @@ function ffmpegBinary() {
  * @param {number} opts.sampleRate  must match liveAudioMixer's sampleRate
  * @param {number} [opts.duckLevel] original-audio volume under the dub (0-1)
  */
+// About 20 s of the 24 kHz mono 16-bit translated-audio pipe.
+const MAX_BUFFERED_BYTES = 1024 * 1024;
+
 export function createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate, duckLevel = 0.2 }) {
   const state = {
     process: null,
     stdin: null,
     pending: [],
+    pendingBytes: 0,
+    droppedBytes: 0,
     closed: false,
     reconnecting: false,
     reconnectAttempts: 0,
@@ -109,11 +114,20 @@ export function createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate, duckL
     }, backoff);
   }
 
+  function keepPending(chunk) {
+    state.pending.push(chunk);
+    state.pendingBytes += chunk.length;
+    while (state.pendingBytes > MAX_BUFFERED_BYTES && state.pending.length > 1) {
+      state.pendingBytes -= state.pending.shift().length; // oldest audio is the least useful
+    }
+  }
+
   function flushPending() {
     if (state.pending.length === 0 || !state.stdin || state.stdin.destroyed) return;
     const combined = Buffer.concat(state.pending.splice(0));
+    state.pendingBytes = 0;
     state.stdin.write(combined, (err) => {
-      if (err) state.pending.unshift(combined);
+      if (err) { state.pending.unshift(combined); state.pendingBytes = combined.length; }
     });
   }
 
@@ -124,11 +138,18 @@ export function createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate, duckL
     write(chunk) {
       if (state.closed) return;
       if (!state.stdin || state.stdin.destroyed || state.reconnecting) {
-        state.pending.push(chunk);
+        keepPending(chunk);
+        return;
+      }
+      // This is real-time audio: if ffmpeg is not reading (its RTMP output is slow or
+      // stalled), data queued for it only grows memory and plays late. Drop instead of
+      // buffering without limit (this exact growth took the orchestrator to 60%+ of RAM).
+      if (state.stdin.writableLength > MAX_BUFFERED_BYTES) {
+        state.droppedBytes += chunk.length;
         return;
       }
       state.stdin.write(chunk, (err) => {
-        if (err) state.pending.push(chunk);
+        if (err) keepPending(chunk);
       });
     },
     stop() {
@@ -137,6 +158,12 @@ export function createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate, duckL
     },
     get alive() {
       return !!state.process;
+    },
+    get bufferedBytes() {
+      return (state.stdin ? state.stdin.writableLength : 0) + state.pendingBytes;
+    },
+    get droppedBytes() {
+      return state.droppedBytes;
     },
     get reconnecting() {
       return state.reconnecting;

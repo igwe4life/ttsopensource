@@ -208,7 +208,7 @@ export function runDubbingPipeline({ input, httpPort }) {
       const rtmp = Object.fromEntries(
         pushLanguages.map((lang) => {
           const p = pushers.get(lang);
-          return [lang, { alive: !!p?.alive, reconnecting: !!p?.reconnecting }];
+          return [lang, { alive: !!p?.alive, reconnecting: !!p?.reconnecting, bufferedKB: Math.round((p?.bufferedBytes || 0) / 1024), droppedKB: Math.round((p?.droppedBytes || 0) / 1024) }];
         })
       );
       return {
