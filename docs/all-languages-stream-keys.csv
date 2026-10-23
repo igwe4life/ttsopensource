@@ -99,56 +99,31 @@
 98,ky,Kyrgyz,Кыргызча,kir_Cyrl,mms,facebook/mms-tts-kir,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
 99,ilo,Ilocano,Ilokano,ilo_Latn,mms,facebook/mms-tts-ilo,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
 100,war,Waray,Winaray,war_Latn,mms,facebook/mms-tts-war,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-101,ace,Acehnese,Bahsa Acèh,ace_Latn,mms,facebook/mms-tts-ace,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-102,awa,Awadhi,अवधी,awa_Deva,mms,facebook/mms-tts-awa,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-103,azb,South Azerbaijani,تۆرکجه,azb_Arab,mms,facebook/mms-tts-azb,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-104,ba,Bashkir,Башҡорт,bak_Cyrl,mms,facebook/mms-tts-bak,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-105,ban,Balinese,Basa Bali,ban_Latn,mms,facebook/mms-tts-ban,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-106,bo,Tibetan,བོད་སྐད,bod_Tibt,mms,facebook/mms-tts-bod,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-107,dik,Southwestern Dinka,Thuɔŋjäŋ,dik_Latn,mms,facebook/mms-tts-dik,yes,configured - NEEDS KEY,,MMS voice: non-commercial licence
-108,dyu,Dyula,Julakan,dyu_Latn,mms,facebook/mms-tts-dyu,yes,configured - NEEDS KEY,,MMS voice: non-commercial licence
-109,dz,Dzongkha,རྫོང་ཁ,dzo_Tibt,mms,facebook/mms-tts-dzo,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-110,fj,Fijian,Na Vosa Vakaviti,fij_Latn,mms,facebook/mms-tts-fij,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-111,hne,Chhattisgarhi,छत्तीसगढ़ी,hne_Deva,mms,facebook/mms-tts-hne,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-112,kac,Jingpho (Kachin),Jinghpaw,kac_Latn,mms,facebook/mms-tts-kac,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-113,mag,Magahi,मगही,mag_Deva,mms,facebook/mms-tts-mag,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-114,mai,Maithili,मैथिली,mai_Deva,mms,facebook/mms-tts-mai,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-115,min,Minangkabau,Baso Minangkabau,min_Latn,mms,facebook/mms-tts-min,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-116,nus,Nuer,Thok Naath,nus_Latn,mms,facebook/mms-tts-nus,yes,configured - NEEDS KEY,,MMS voice: non-commercial licence
-117,or,Odia,ଓଡ଼ିଆ,ory_Orya,mms,facebook/mms-tts-ory,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-118,pag,Pangasinan,Salitan Pangasinan,pag_Latn,mms,facebook/mms-tts-pag,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-119,pap,Papiamento,Papiamentu,pap_Latn,mms,facebook/mms-tts-pap,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-120,shn,Shan,ၵႂၢမ်းတႆး,shn_Mymr,mms,facebook/mms-tts-shn,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-121,sm,Samoan,Gagana Samoa,smo_Latn,mms,facebook/mms-tts-smo,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-122,taq,Tamasheq,Tamasheq,taq_Latn,mms,facebook/mms-tts-taq,yes,configured - NEEDS KEY,,MMS voice: non-commercial licence
-123,tk,Turkmen,Türkmen,tuk_Latn,mms,facebook/mms-tts-tuk-script_latin,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-124,tpi,Tok Pisin,Tok Pisin,tpi_Latn,mms,facebook/mms-tts-tpi,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-125,ug,Uyghur,ئۇيغۇرچە,uig_Arab,mms,facebook/mms-tts-uig-script_arabic,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
-126,ace,Acehnese,Bahsa Acèh,ace_Latn,mms,facebook/mms-tts-ace,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-127,awa,Awadhi,अवधी,awa_Deva,mms,facebook/mms-tts-awa,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-128,azb,South Azerbaijani,تۆرکجه,azb_Arab,mms,facebook/mms-tts-azb,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-129,ba,Bashkir,Башҡорт,bak_Cyrl,mms,facebook/mms-tts-bak,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-130,ban,Balinese,Basa Bali,ban_Latn,mms,facebook/mms-tts-ban,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-131,bo,Tibetan,བོད་སྐད,bod_Tibt,mms,facebook/mms-tts-bod,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence; non-Latin script: voice may need romanisation
-132,dik,Southwestern Dinka,Thuɔŋjäŋ,dik_Latn,mms,facebook/mms-tts-dik,yes,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-133,dyu,Dyula,Julakan,dyu_Latn,mms,facebook/mms-tts-dyu,yes,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-134,dz,Dzongkha,རྫོང་ཁ,dzo_Tibt,mms,facebook/mms-tts-dzo,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence; non-Latin script: voice may need romanisation
-135,fj,Fijian,Na Vosa Vakaviti,fij_Latn,mms,facebook/mms-tts-fij,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-136,hne,Chhattisgarhi,छत्तीसगढ़ी,hne_Deva,mms,facebook/mms-tts-hne,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-137,kac,Jingpho (Kachin),Jinghpaw,kac_Latn,mms,facebook/mms-tts-kac,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-138,mag,Magahi,मगही,mag_Deva,mms,facebook/mms-tts-mag,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-139,mai,Maithili,मैथिली,mai_Deva,mms,facebook/mms-tts-mai,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-140,min,Minangkabau,Baso Minangkabau,min_Latn,mms,facebook/mms-tts-min,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-141,nus,Nuer,Thok Naath,nus_Latn,mms,facebook/mms-tts-nus,yes,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-142,or,Odia,ଓଡ଼ିଆ,ory_Orya,mms,facebook/mms-tts-ory,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-143,pag,Pangasinan,Salitan Pangasinan,pag_Latn,mms,facebook/mms-tts-pag,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-144,pap,Papiamento,Papiamentu,pap_Latn,mms,facebook/mms-tts-pap,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-145,shn,Shan,ၵႂၢမ်းတႆး,shn_Mymr,mms,facebook/mms-tts-shn,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence; non-Latin script: voice may need romanisation
-146,sm,Samoan,Gagana Samoa,smo_Latn,mms,facebook/mms-tts-smo,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-147,taq,Tamasheq,Tamasheq,taq_Latn,mms,facebook/mms-tts-taq,yes,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-148,tk,Turkmen,Türkmen,tuk_Latn,mms,facebook/mms-tts-tuk-script_latin,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-149,tpi,Tok Pisin,Tok Pisin,tpi_Latn,mms,facebook/mms-tts-tpi,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-150,ug,Uyghur,ئۇيغۇرچە,uig_Arab,mms,facebook/mms-tts-uig-script_arabic,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
-151,crh,Crimean Tatar,Qırımtatarca,crh_Latn,mms,facebook/mms-tts-crh,no,not recommended,,NOT RECOMMENDED: the voice fails on every input (tested)
-152,en,English,English,eng_Latn,mms,facebook/mms-tts-eng,no,not recommended,,"NOT RECOMMENDED: English is the source language, nothing to dub"
-153,uz,Uzbek,Oʻzbek,uzn_Latn,mms,facebook/mms-tts-uzb-script_cyrillic,no,not recommended,,NOT RECOMMENDED: the only voice reads Cyrillic but NLLB writes Latin
+101,ace,Acehnese,Bahsa Acèh,ace_Latn,mms,facebook/mms-tts-ace,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+102,awa,Awadhi,अवधी,awa_Deva,mms,facebook/mms-tts-awa,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+103,azb,South Azerbaijani,تۆرکجه,azb_Arab,mms,facebook/mms-tts-azb,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+104,ba,Bashkir,Башҡорт,bak_Cyrl,mms,facebook/mms-tts-bak,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+105,ban,Balinese,Basa Bali,ban_Latn,mms,facebook/mms-tts-ban,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+106,bo,Tibetan,བོད་སྐད,bod_Tibt,mms,facebook/mms-tts-bod,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence; non-Latin script: voice may need romanisation
+107,dik,Southwestern Dinka,Thuɔŋjäŋ,dik_Latn,mms,facebook/mms-tts-dik,yes,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+108,dyu,Dyula,Julakan,dyu_Latn,mms,facebook/mms-tts-dyu,yes,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+109,dz,Dzongkha,རྫོང་ཁ,dzo_Tibt,mms,facebook/mms-tts-dzo,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence; non-Latin script: voice may need romanisation
+110,fj,Fijian,Na Vosa Vakaviti,fij_Latn,mms,facebook/mms-tts-fij,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+111,hne,Chhattisgarhi,छत्तीसगढ़ी,hne_Deva,mms,facebook/mms-tts-hne,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+112,kac,Jingpho (Kachin),Jinghpaw,kac_Latn,mms,facebook/mms-tts-kac,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+113,mag,Magahi,मगही,mag_Deva,mms,facebook/mms-tts-mag,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+114,mai,Maithili,मैथिली,mai_Deva,mms,facebook/mms-tts-mai,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+115,min,Minangkabau,Baso Minangkabau,min_Latn,mms,facebook/mms-tts-min,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+116,nus,Nuer,Thok Naath,nus_Latn,mms,facebook/mms-tts-nus,yes,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+117,or,Odia,ଓଡ଼ିଆ,ory_Orya,mms,facebook/mms-tts-ory,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+118,pag,Pangasinan,Salitan Pangasinan,pag_Latn,mms,facebook/mms-tts-pag,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+119,pap,Papiamento,Papiamentu,pap_Latn,mms,facebook/mms-tts-pap,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+120,shn,Shan,ၵႂၢမ်းတႆး,shn_Mymr,mms,facebook/mms-tts-shn,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence; non-Latin script: voice may need romanisation
+121,sm,Samoan,Gagana Samoa,smo_Latn,mms,facebook/mms-tts-smo,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+122,taq,Tamasheq,Tamasheq,taq_Latn,mms,facebook/mms-tts-taq,yes,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+123,tk,Turkmen,Türkmen,tuk_Latn,mms,facebook/mms-tts-tuk-script_latin,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+124,tpi,Tok Pisin,Tok Pisin,tpi_Latn,mms,facebook/mms-tts-tpi,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+125,ug,Uyghur,ئۇيغۇرچە,uig_Arab,mms,facebook/mms-tts-uig-script_arabic,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+126,crh,Crimean Tatar,Qırımtatarca,crh_Latn,mms,facebook/mms-tts-crh,no,not recommended,,NOT RECOMMENDED: the voice fails on every input (tested)
+127,en,English,English,eng_Latn,mms,facebook/mms-tts-eng,no,not recommended,,"NOT RECOMMENDED: English is the source language, nothing to dub"
+128,uz,Uzbek,Oʻzbek,uzn_Latn,mms,facebook/mms-tts-uzb-script_cyrillic,no,not recommended,,NOT RECOMMENDED: the only voice reads Cyrillic but NLLB writes Latin
