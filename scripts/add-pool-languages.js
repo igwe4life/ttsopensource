@@ -62,7 +62,8 @@ const NLLB_FIX = { fo: 'fao_Latn', tt: 'tat_Cyrl' };
 // Second batch (26 more NLLB-200 languages that have an MMS voice). Appended AFTER the first 100 in
 // pool-languages.json so the first 100 keep their positions — GPU pods shard by position (index mod N),
 // and live pods already hold their voices under that layout.
-// Not included on purpose: English (the source language) and Uzbek (MMS voice is Cyrillic, NLLB writes Latin).
+// Not included on purpose: English (the source language), Uzbek (MMS voice is Cyrillic, NLLB writes Latin) and
+// Crimean Tatar (crh: the MMS voice fails on every input — it was most likely trained on Cyrillic script).
 // [code, English name, native name, NLLB code, MMS id]
 const EXTRA_MMS = [
   ["ace", "Acehnese", "Bahsa Acèh", "ace_Latn", "ace"],
@@ -71,7 +72,6 @@ const EXTRA_MMS = [
   ["ba", "Bashkir", "Башҡорт", "bak_Cyrl", "bak"],
   ["ban", "Balinese", "Basa Bali", "ban_Latn", "ban"],
   ["bo", "Tibetan", "བོད་སྐད", "bod_Tibt", "bod"],
-  ["crh", "Crimean Tatar", "Qırımtatarca", "crh_Latn", "crh"],
   ["dik", "Southwestern Dinka", "Thuɔŋjäŋ", "dik_Latn", "dik"],
   ["dyu", "Dyula", "Julakan", "dyu_Latn", "dyu"],
   ["dz", "Dzongkha", "རྫོང་ཁ", "dzo_Tibt", "dzo"],
