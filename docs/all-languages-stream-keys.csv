@@ -1,0 +1,129 @@
+﻿#,language_code,language_name,native_name,nllb_code,tts_engine,voice,african,status,stream_key,notes
+1,ar,Arabic,العربية,arb_Arab,piper,ar_JO-kareem-medium,no,LIVE,(already set),
+2,bg,Bulgarian,Български,bul_Cyrl,piper,bg_BG-dimitar-medium,no,LIVE,(already set),
+3,am,Amharic,አማርኛ,amh_Ethi,mms,facebook/mms-tts-amh,yes,LIVE,(already set),MMS voice: non-commercial licence
+4,as,Assamese,অসমীয়া,asm_Beng,mms,facebook/mms-tts-asm,no,LIVE,(already set),MMS voice: non-commercial licence
+5,ff,Fula (Fulfulde),Fulfulde,fuv_Latn,mms,facebook/mms-tts-ful,yes,LIVE,(already set),MMS voice: non-commercial licence
+6,fo,Faroese,Føroyskt,fao_Latn,mms,facebook/mms-tts-fao,no,LIVE,(already set),MMS voice: non-commercial licence
+7,ca,Catalan,Català,cat_Latn,piper,ca_ES-upc_ona-medium,no,LIVE,(already set),
+8,cs,Czech,Čeština,ces_Latn,piper,cs_CZ-jirka-medium,no,LIVE,(already set),
+9,cy,Welsh,Cymraeg,cym_Latn,piper,cy_GB-gwryw_gogleddol-medium,no,LIVE,(already set),
+10,da,Danish,Dansk,dan_Latn,piper,da_DK-talesyntese-medium,no,LIVE,(already set),
+11,ha,Hausa,Hausa,hau_Latn,mms,facebook/mms-tts-hau,yes,LIVE,(already set),MMS voice: non-commercial licence
+12,ht,Haitian Creole,Kreyòl ayisyen,hat_Latn,mms,facebook/mms-tts-hat,no,LIVE,(already set),MMS voice: non-commercial licence
+13,jw,Javanese,Basa Jawa,jav_Latn,mms,facebook/mms-tts-jav,no,LIVE,(already set),MMS voice: non-commercial licence
+14,km,Khmer,ខ្មែរ,khm_Khmr,mms,facebook/mms-tts-khm,no,LIVE,(already set),MMS voice: non-commercial licence
+15,de,German,Deutsch,deu_Latn,piper,de_DE-thorsten-medium,no,LIVE,(already set),
+16,el,Greek,Ελληνικά,ell_Grek,piper,el_GR-rapunzelina-low,no,LIVE,(already set),
+17,es,Spanish,Español,spa_Latn,piper,es_ES-sharvard-medium,no,LIVE,(already set),
+18,et,Estonian,Eesti,est_Latn,piper,et_EE-news-medium,no,LIVE,(already set),
+19,my,Burmese,မြန်မာဘာသာ,mya_Mymr,mms,facebook/mms-tts-mya,no,LIVE,(already set),MMS voice: non-commercial licence
+20,rw,Kinyarwanda,Ikinyarwanda,kin_Latn,mms,facebook/mms-tts-kin,yes,LIVE,(already set),MMS voice: non-commercial licence
+21,sn,Shona,ChiShona,sna_Latn,mms,facebook/mms-tts-sna,yes,LIVE,(already set),MMS voice: non-commercial licence
+22,so,Somali,Soomaali,som_Latn,mms,facebook/mms-tts-som,yes,LIVE,(already set),MMS voice: non-commercial licence
+23,fa,Persian,فارسی,pes_Arab,piper,fa_IR-amir-medium,no,LIVE,(already set),
+24,fi,Finnish,Suomi,fin_Latn,piper,fi_FI-harri-medium,no,LIVE,(already set),
+25,fr,French,Français,fra_Latn,piper,fr_FR-siwis-medium,no,LIVE,(already set),
+26,hu,Hungarian,Magyar,hun_Latn,piper,hu_HU-imre-medium,no,LIVE,(already set),
+27,su,Sundanese,Basa Sunda,sun_Latn,mms,facebook/mms-tts-sun,no,LIVE,(already set),MMS voice: non-commercial licence
+28,tg,Tajik,Тоҷикӣ,tgk_Cyrl,mms,facebook/mms-tts-tgk,no,LIVE,(already set),MMS voice: non-commercial licence
+29,tt,Tatar,Татар,tat_Cyrl,mms,facebook/mms-tts-tat,no,LIVE,(already set),MMS voice: non-commercial licence
+30,tw,Twi (Akan),Twi,aka_Latn,mms,facebook/mms-tts-aka,yes,LIVE,(already set),MMS voice: non-commercial licence
+31,is,Icelandic,Íslenska,isl_Latn,piper,is_IS-bui-medium,no,LIVE,(already set),
+32,it,Italian,Italiano,ita_Latn,piper,it_IT-riccardo-x_low,no,LIVE,(already set),
+33,ka,Georgian,ქართული,kat_Geor,piper,ka_GE-natia-medium,no,LIVE,(already set),
+34,kk,Kazakh,Қазақ,kaz_Cyrl,piper,kk_KZ-iseke-x_low,no,LIVE,(already set),
+35,yo,Yoruba,Yorùbá,yor_Latn,mms,facebook/mms-tts-yor,yes,LIVE,(already set),MMS voice: non-commercial licence
+36,mg,Malagasy,Malagasy,plt_Latn,mms,facebook/mms-tts-mlg,yes,LIVE,(already set),MMS voice: non-commercial licence
+37,mn,Mongolian,Монгол,khk_Cyrl,mms,facebook/mms-tts-mon,no,LIVE,(already set),MMS voice: non-commercial licence
+38,gu,Gujarati,ગુજરાતી,guj_Gujr,mms,facebook/mms-tts-guj,no,LIVE,(already set),MMS voice: non-commercial licence
+39,lv,Latvian,Latviešu,lvs_Latn,piper,lv_LV-aivars-medium,no,LIVE,(already set),
+40,ne,Nepali,नेपाली,npi_Deva,piper,ne_NP-google-medium,no,LIVE,(already set),
+41,nl,Dutch,Nederlands,nld_Latn,piper,nl_NL-mls-medium,no,LIVE,(already set),
+42,no,Norwegian,Norsk,nob_Latn,piper,no_NO-talesyntese-medium,no,LIVE,(already set),
+43,kn,Kannada,ಕನ್ನಡ,kan_Knda,mms,facebook/mms-tts-kan,no,LIVE,(already set),MMS voice: non-commercial licence
+44,lo,Lao,ລາວ,lao_Laoo,mms,facebook/mms-tts-lao,no,LIVE,(already set),MMS voice: non-commercial licence
+45,pa,Punjabi,ਪੰਜਾਬੀ,pan_Guru,mms,facebook/mms-tts-pan,no,LIVE,(already set),MMS voice: non-commercial licence
+46,tl,Tagalog,Tagalog,tgl_Latn,mms,facebook/mms-tts-tgl,no,LIVE,(already set),MMS voice: non-commercial licence
+47,pl,Polish,Polski,pol_Latn,piper,pl_PL-darkman-medium,no,LIVE,(already set),
+48,pt,Portuguese,Português,por_Latn,piper,pt_BR-faber-medium,no,LIVE,(already set),
+49,ro,Romanian,Română,ron_Latn,piper,ro_RO-mihai-medium,no,LIVE,(already set),
+50,ru,Russian,Русский,rus_Cyrl,piper,ru_RU-irina-medium,no,LIVE,(already set),
+51,az,Azerbaijani,Azərbaycan,azj_Latn,mms,facebook/mms-tts-azj-script_latin,no,LIVE,(already set),MMS voice: non-commercial licence
+52,ms,Malay,Bahasa Melayu,zsm_Latn,mms,facebook/mms-tts-zlm,no,LIVE,(already set),MMS voice: non-commercial licence
+53,ta,Tamil,தமிழ்,tam_Taml,mms,facebook/mms-tts-tam,no,LIVE,(already set),MMS voice: non-commercial licence
+54,he,Hebrew,עברית,heb_Hebr,mms,facebook/mms-tts-heb,no,LIVE,(already set),MMS voice: non-commercial licence
+55,sk,Slovak,Slovenčina,slk_Latn,piper,sk_SK-lili-medium,no,LIVE,(already set),
+56,sl,Slovenian,Slovenščina,slv_Latn,piper,sl_SI-artur-medium,no,LIVE,(already set),
+57,sr,Serbian,Српски,srp_Cyrl,piper,sr_RS-serbski_institut-medium,no,LIVE,(already set),
+58,sv,Swedish,Svenska,swe_Latn,piper,sv_SE-nst-medium,no,LIVE,(already set),
+59,th,Thai,ไทย,tha_Thai,mms,facebook/mms-tts-tha,no,LIVE,(already set),MMS voice: non-commercial licence
+60,ceb,Cebuano,Cebuano,ceb_Latn,mms,facebook/mms-tts-ceb,no,LIVE,(already set),MMS voice: non-commercial licence
+61,ak,Akan,Akan,aka_Latn,mms,facebook/mms-tts-aka,yes,LIVE,(already set),MMS voice: non-commercial licence
+62,om,Oromo,Afaan Oromoo,gaz_Latn,mms,facebook/mms-tts-orm,yes,LIVE,(already set),MMS voice: non-commercial licence
+63,sw,Swahili,Kiswahili,swh_Latn,piper,sw_CD-lanfrica-medium,yes,LIVE,(already set),
+64,tr,Turkish,Türkçe,tur_Latn,piper,tr_TR-dfki-medium,no,LIVE,(already set),
+65,uk,Ukrainian,Українська,ukr_Cyrl,piper,uk_UA-ukrainian_tts-medium,no,LIVE,(already set),
+66,vi,Vietnamese,Tiếng Việt,vie_Latn,piper,vi_VN-vais1000-medium,no,LIVE,(already set),
+67,ti,Tigrinya,ትግርኛ,tir_Ethi,mms,facebook/mms-tts-tir,yes,LIVE,(already set),MMS voice: non-commercial licence
+68,lg,Luganda,Luganda,lug_Latn,mms,facebook/mms-tts-lug,yes,LIVE,(already set),MMS voice: non-commercial licence
+69,ny,Chichewa,Chichewa,nya_Latn,mms,facebook/mms-tts-nya,yes,LIVE,(already set),MMS voice: non-commercial licence
+70,bm,Bambara,Bamanankan,bam_Latn,mms,facebook/mms-tts-bam,yes,LIVE,(already set),MMS voice: non-commercial licence
+71,zh,Chinese,中文,zho_Hans,piper,zh_CN-huayan-medium,no,LIVE,(already set),
+72,hi,Hindi,हिन्दी,hin_Deva,piper,hi_IN-pratham-medium,no,LIVE,(already set),
+73,id,Indonesian,Bahasa Indonesia,ind_Latn,piper,id_ID-news_tts-medium,no,LIVE,(already set),
+74,bn,Bengali,বাংলা,ben_Beng,piper,bn_BD-google-medium,no,LIVE,(already set),
+75,ki,Kikuyu,Gĩkũyũ,kik_Latn,mms,facebook/mms-tts-kik,yes,LIVE,(already set),MMS voice: non-commercial licence
+76,ee,Ewe,Eʋegbe,ewe_Latn,mms,facebook/mms-tts-ewe,yes,LIVE,(already set),MMS voice: non-commercial licence
+77,ts,Tsonga,Xitsonga,tso_Latn,mms,facebook/mms-tts-tso,yes,LIVE,(already set),MMS voice: non-commercial licence
+78,rn,Kirundi,Ikirundi,run_Latn,mms,facebook/mms-tts-run,yes,LIVE,(already set),MMS voice: non-commercial licence
+79,eu,Basque,Euskara,eus_Latn,piper,eu_ES-antton-medium,no,configured - NEEDS KEY,,
+80,ml,Malayalam,മലയാളം,mal_Mlym,piper,ml_IN-arjun-medium,no,configured - NEEDS KEY,,
+81,mr,Marathi,मराठी,mar_Deva,piper,mr_IN-google-medium,no,configured - NEEDS KEY,,
+82,te,Telugu,తెలుగు,tel_Telu,piper,te_IN-maya-medium,no,configured - NEEDS KEY,,
+83,sag,Sango,Sängö,sag_Latn,mms,facebook/mms-tts-sag,yes,configured - NEEDS KEY,,MMS voice: non-commercial licence
+84,mos,Mossi,Mooré,mos_Latn,mms,facebook/mms-tts-mos,yes,configured - NEEDS KEY,,MMS voice: non-commercial licence
+85,kab,Kabyle,Taqbaylit,kab_Latn,mms,facebook/mms-tts-kab,yes,configured - NEEDS KEY,,MMS voice: non-commercial licence
+86,fon,Fon,Fɔ̀ngbè,fon_Latn,mms,facebook/mms-tts-fon,yes,configured - NEEDS KEY,,MMS voice: non-commercial licence
+87,sq,Albanian,Shqip,als_Latn,piper,sq_AL-edon-medium,no,configured - NEEDS KEY,,
+88,ur,Urdu,اردو,urd_Arab,piper,ur_PK-fasih-medium,no,configured - NEEDS KEY,,
+89,hy,Armenian,Հայերեն,hye_Armn,piper,hy_AM-gor-medium,no,configured - NEEDS KEY,,
+90,lb,Luxembourgish,Lëtzebuergesch,ltz_Latn,piper,lb_LU-marylux-medium,no,configured - NEEDS KEY,,
+91,kbp,Kabiyè,Kabɩyɛ,kbp_Latn,mms,facebook/mms-tts-kbp,yes,configured - NEEDS KEY,,MMS voice: non-commercial licence
+92,bem,Bemba,Ichibemba,bem_Latn,mms,facebook/mms-tts-bem,yes,configured - NEEDS KEY,,MMS voice: non-commercial licence
+93,ay,Aymara,Aymar aru,ayr_Latn,mms,facebook/mms-tts-ayr,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
+94,gn,Guarani,Avañe'ẽ,grn_Latn,mms,facebook/mms-tts-grn,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
+95,ko,Korean,한국어,kor_Hang,piper,ko_KR-kss-medium,no,configured - NEEDS KEY,,
+96,ku,Kurdish (Kurmanji),Kurdî,kmr_Latn,piper,ku_TR-berfin_renas-medium,no,configured - NEEDS KEY,,
+97,qu,Quechua,Runasimi,quy_Latn,mms,facebook/mms-tts-quy,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
+98,ky,Kyrgyz,Кыргызча,kir_Cyrl,mms,facebook/mms-tts-kir,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
+99,ilo,Ilocano,Ilokano,ilo_Latn,mms,facebook/mms-tts-ilo,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
+100,war,Waray,Winaray,war_Latn,mms,facebook/mms-tts-war,no,configured - NEEDS KEY,,MMS voice: non-commercial licence
+101,ace,Acehnese,Bahsa Acèh,ace_Latn,mms,facebook/mms-tts-ace,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+102,awa,Awadhi,अवधी,awa_Deva,mms,facebook/mms-tts-awa,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+103,azb,South Azerbaijani,تۆرکجه,azb_Arab,mms,facebook/mms-tts-azb,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+104,ba,Bashkir,Башҡорт,bak_Cyrl,mms,facebook/mms-tts-bak,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+105,ban,Balinese,Basa Bali,ban_Latn,mms,facebook/mms-tts-ban,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+106,bo,Tibetan,བོད་སྐད,bod_Tibt,mms,facebook/mms-tts-bod,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence; non-Latin script: voice may need romanisation
+107,crh,Crimean Tatar,Qırımtatarca,crh_Latn,mms,facebook/mms-tts-crh,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+108,dik,Southwestern Dinka,Thuɔŋjäŋ,dik_Latn,mms,facebook/mms-tts-dik,yes,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+109,dyu,Dyula,Julakan,dyu_Latn,mms,facebook/mms-tts-dyu,yes,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+110,dz,Dzongkha,རྫོང་ཁ,dzo_Tibt,mms,facebook/mms-tts-dzo,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence; non-Latin script: voice may need romanisation
+111,fj,Fijian,Na Vosa Vakaviti,fij_Latn,mms,facebook/mms-tts-fij,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+112,hne,Chhattisgarhi,छत्तीसगढ़ी,hne_Deva,mms,facebook/mms-tts-hne,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+113,kac,Jingpho (Kachin),Jinghpaw,kac_Latn,mms,facebook/mms-tts-kac,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+114,mag,Magahi,मगही,mag_Deva,mms,facebook/mms-tts-mag,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+115,mai,Maithili,मैथिली,mai_Deva,mms,facebook/mms-tts-mai,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+116,min,Minangkabau,Baso Minangkabau,min_Latn,mms,facebook/mms-tts-min,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+117,nus,Nuer,Thok Naath,nus_Latn,mms,facebook/mms-tts-nus,yes,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+118,or,Odia,ଓଡ଼ିଆ,ory_Orya,mms,facebook/mms-tts-ory,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+119,pag,Pangasinan,Salitan Pangasinan,pag_Latn,mms,facebook/mms-tts-pag,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+120,pap,Papiamento,Papiamentu,pap_Latn,mms,facebook/mms-tts-pap,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+121,shn,Shan,ၵႂၢမ်းတႆး,shn_Mymr,mms,facebook/mms-tts-shn,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence; non-Latin script: voice may need romanisation
+122,sm,Samoan,Gagana Samoa,smo_Latn,mms,facebook/mms-tts-smo,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+123,taq,Tamasheq,Tamasheq,taq_Latn,mms,facebook/mms-tts-taq,yes,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+124,tk,Turkmen,Türkmen,tuk_Latn,mms,facebook/mms-tts-tuk-script_latin,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+125,tpi,Tok Pisin,Tok Pisin,tpi_Latn,mms,facebook/mms-tts-tpi,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+126,ug,Uyghur,ئۇيغۇرچە,uig_Arab,mms,facebook/mms-tts-uig-script_arabic,no,NEW - NEEDS KEY,,MMS voice: non-commercial licence
+127,en,English,English,eng_Latn,mms,facebook/mms-tts-eng,no,not recommended,,"NOT RECOMMENDED: English is the source language, nothing to dub"
+128,uz,Uzbek,Oʻzbek,uzn_Latn,mms,facebook/mms-tts-uzb-script_cyrillic,no,not recommended,,NOT RECOMMENDED: the only voice reads Cyrillic but NLLB writes Latin
