@@ -74,6 +74,10 @@ export const config = {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean),
+    // Optional explicit language -> GPU node map: groups separated by "|", one group per GPU_POOL entry (same order),
+    // each a comma list of language codes. When set, a language is sent to the node whose group lists it (instead of
+    // by position), so nodes can be added or languages reordered without moving voices between nodes.
+    shards: (process.env.GPU_SHARDS || '').split('|').map((g) => g.split(',').map((s) => s.trim()).filter(Boolean)),
     // GPU pool: comma-separated gpu-service base URLs. The language list is
     // sharded across them (see pipeline.js). Every node must accept the same
     // GPU_SERVICE_API_KEY. Empty -> a single node from GPU_SERVICE_URL /

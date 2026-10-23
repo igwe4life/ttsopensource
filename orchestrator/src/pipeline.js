@@ -47,8 +47,7 @@ export function runDubbingPipeline({ input, httpPort }) {
 
   // ── Shard the language list across GPU nodes (round-robin, so the
   // alternating cheap/expensive order of the list spreads evenly). ─────────
-  const shards = nodes.map(() => []);
-  languages.forEach((lang, i) => shards[i % nodes.length].push(lang));
+  const shards = buildShards(languages, nodes.length, config.gpu.shards);
   nodes.forEach((n, i) => console.log(`[pipeline]   node ${i} (${n.baseUrl.replace(/^https?:\/\//, '').split('.')[0]}): ${shards[i].length} languages`));
 
   // ── One live mixer per language, created immediately (always-on). ───────
@@ -225,6 +224,27 @@ export function runDubbingPipeline({ input, httpPort }) {
       };
     },
   };
+}
+
+/**
+ * Assigns each language to a GPU node. With GPU_SHARDS (one group per node) a language goes to the node that lists
+ * it; anything unlisted, or all languages when GPU_SHARDS is absent, falls back to the least-loaded node (round-robin by position when there is no map).
+ * Exported for testing.
+ */
+export function buildShards(languages, nodeCount, explicit = []) {
+  const shards = Array.from({ length: nodeCount }, () => []);
+  const usable = explicit.length === nodeCount && explicit.some((g) => g.length > 0);
+  const home = new Map();
+  if (usable) explicit.forEach((group, node) => group.forEach((lang) => { if (!home.has(lang)) home.set(lang, node); }));
+  for (const lang of languages) {
+    if (usable && home.has(lang)) { shards[home.get(lang)].push(lang); continue; }
+    // unlisted (or no map at all): the node with the fewest languages so far, lowest index on ties.
+    // With no map this is exactly round-robin by position.
+    let n = 0;
+    for (let k = 1; k < nodeCount; k++) if (shards[k].length < shards[n].length) n = k;
+    shards[n].push(lang);
+  }
+  return shards;
 }
 
 function summarize(recent, segmentsDone, dropped, budgetMs, languages) {
