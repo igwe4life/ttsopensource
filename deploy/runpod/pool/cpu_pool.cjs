@@ -11,7 +11,8 @@ const langs = JSON.parse(fs.readFileSync(process.env.POOL_FILE || (REPO + '/lang
 const env = {
   GPU_SERVICE_API_KEY: GPU_KEY, GPU_POOL: pods.map((p) => `https://${p.id}-8000.proxy.runpod.net`).join(','),
   STREAM_URL: process.env.STREAM_URL,
-  TARGET_LANGUAGES: langs.join(','), RTMP_SERVER: rtmpServer, RTMP_KEY_PREFIX: process.env.KEY_PREFIX || 'pool-test-', RTMP_STREAM_KEYS: process.env.REAL_KEYS === '1' ? ((orch.match(/^RTMP_STREAM_KEYS=(.*)$/m) || [, ''])[1].trim()) : '',
+  TARGET_LANGUAGES: langs.join(','),
+  PUSH_LANGUAGES: process.env.PUSH_FILE ? JSON.parse(fs.readFileSync(process.env.PUSH_FILE, 'utf8')).languages.join(',') : '', RTMP_SERVER: rtmpServer, RTMP_KEY_PREFIX: process.env.KEY_PREFIX || 'pool-test-', RTMP_STREAM_KEYS: process.env.REAL_KEYS === '1' ? ((orch.match(/^RTMP_STREAM_KEYS=(.*)$/m) || [, ''])[1].trim()) : '',
   SOURCE_RELAY: 'true', CHUNK_SECONDS: '4', CHUNK_OVERLAP_MS: '750', CHUNK_TIMEOUT_MS: '15000',
   MIX_SAMPLE_RATE: '24000', MIX_MAX_QUEUED_SECONDS: '8', DUCK_LEVEL: '0.2', HTTP_PORT: '4000',
 };

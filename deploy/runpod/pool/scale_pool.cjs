@@ -15,7 +15,7 @@ const call = (method, path, body) => fetch('https://rest.runpod.io/v1' + path, {
   // ONLY_PODS=1 creates just the first pod of the <targetPods>-way split (single-pod tests).
   while (pods.length < Math.min(target, Number(process.env.ONLY_PODS || target))) {
     const i = pods.length;
-    const body = { name: `ttsopensource-prod-gpu-${i}`, imageName: `ghcr.io/igwe4life/ttsopensource-gpu:${tag}`, gpuTypeIds: ['NVIDIA GeForce RTX 3090'], gpuTypePriority: 'custom', gpuCount: 1, cloudType: 'SECURE',
+    const body = { name: `ttsopensource-prod-gpu-${i}`, imageName: `ghcr.io/igwe4life/ttsopensource-gpu:${tag}`, gpuTypeIds: (process.env.GPU_TYPES || 'NVIDIA GeForce RTX 3090').split(','), gpuTypePriority: 'custom', gpuCount: 1, cloudType: 'SECURE',
       containerDiskInGb: 50, ports: ['8000/http'],
       // Prefer the shared network volume (models already downloaded -> ~1-2 min start); it pins pods to its datacenter.
       ...(process.env.NETWORK_VOLUME_ID
@@ -25,7 +25,7 @@ const call = (method, path, body) => fetch('https://rest.runpod.io/v1' + path, {
     let landed = null;
     for (let a = 1; a <= 12 && !landed; a++) {
       const out = await (await call('POST', '/pods', body)).json();
-      if (out.id) { if (out.costPerHr <= 0.6) landed = out; else { console.log(`pod ${i}: $${out.costPerHr} over cap, deleting`); await call('DELETE', '/pods/' + out.id); } }
+      if (out.id) { if (out.costPerHr <= 0.6 && (out.vcpuCount || 0) >= Number(process.env.MIN_VCPU || 0)) landed = out; else { console.log(`pod ${i}: landed ${out.machine && out.machine.gpuTypeId} ${out.costPerHr} ${out.vcpuCount}vCPU - rejected (price cap / min vCPU), deleting`); await call('DELETE', '/pods/' + out.id); } }
       if (!landed) await new Promise((r) => setTimeout(r, 8000));
     }
     if (!landed) { console.log(`pod ${i}: could not allocate`); break; }

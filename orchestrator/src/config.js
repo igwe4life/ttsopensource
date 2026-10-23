@@ -117,6 +117,10 @@ export const config = {
 
   // --- RTMP broadcast — one persistent push per language, always-on ──────
   rtmp: {
+    // Optional subset of TARGET_LANGUAGES that actually gets an RTMP pusher (comma-separated codes).
+    // Every target language is still translated/synthesized (so GPU shards stay aligned), but only
+    // these are published — use it to stay within what the RTMP server can accept. Empty = all.
+    pushLanguages: (process.env.PUSH_LANGUAGES || '').split(',').map((s) => s.trim()).filter(Boolean),
     baseUrl: process.env.RTMP_SERVER || '',
     // Prefix stream keys during testing (e.g. "test-") so verification
     // pushes don't land on the real per-language keys real viewers might

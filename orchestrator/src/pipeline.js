@@ -64,10 +64,13 @@ export function runDubbingPipeline({ input, httpPort }) {
   // ~100 ffmpeg processes do not all spin up (and hit the RTMP server) at once. ──
   const relay = config.sourceRelay.enabled ? createSourceRelay({ sourceUrl: input, dir: config.sourceRelay.dir }) : null;
   let stopped = false;
+  // Only these languages get an RTMP pusher (see PUSH_LANGUAGES); the rest are still processed.
+  const pushSet = new Set(config.rtmp.pushLanguages.length ? config.rtmp.pushLanguages : languages);
+  const pushLanguages = languages.filter((l) => pushSet.has(l));
   async function startPushers(sourceUrl) {
     const BATCH = 10;
-    for (let i = 0; i < languages.length && !stopped; i += BATCH) {
-      for (const lang of languages.slice(i, i + BATCH)) {
+    for (let i = 0; i < pushLanguages.length && !stopped; i += BATCH) {
+      for (const lang of pushLanguages.slice(i, i + BATCH)) {
         const rtmpUrl = `${config.rtmp.baseUrl.replace(/\/+$/, '')}/${config.rtmp.keyFor(lang)}`;
         pushers.set(lang, createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate: config.mixSampleRate, duckLevel: config.duckLevel }));
       }
@@ -203,7 +206,7 @@ export function runDubbingPipeline({ input, httpPort }) {
     },
     status: () => {
       const rtmp = Object.fromEntries(
-        languages.map((lang) => {
+        pushLanguages.map((lang) => {
           const p = pushers.get(lang);
           return [lang, { alive: !!p?.alive, reconnecting: !!p?.reconnecting }];
         })
@@ -216,7 +219,7 @@ export function runDubbingPipeline({ input, httpPort }) {
         gpuNodes: clients.map((c, i) => ({ connected: c.connected, languages: shards[i].length })),
         relay: relay ? { alive: relay.alive, segments: relay.segments } : null,
         stats: summarize(recent, segmentsDone, droppedChunks, config.chunkSeconds * 1000, languages.length),
-        pushers: { started: pushers.size, alive: Object.values(rtmp).filter((r) => r.alive).length, total: languages.length },
+        pushers: { started: pushers.size, alive: Object.values(rtmp).filter((r) => r.alive).length, total: pushLanguages.length },
         failedLanguages: Object.fromEntries(failed),
         rtmp,
       };
