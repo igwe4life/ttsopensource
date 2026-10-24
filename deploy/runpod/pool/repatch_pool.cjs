@@ -1,4 +1,4 @@
-// usage: node repatch_pool.cjs <imageTag> [extraEnvJson]
+// usage: [ONLY_PODS=0,2] node repatch_pool.cjs <imageTag> [extraEnvJson]
 // Points every pool pod at ghcr.io/igwe4life/ttsopensource-gpu:<imageTag> and rewrites its env
 // (including its PRELOAD shard from the CURRENT pool-languages.json). PATCH restarts the pod.
 const fs = require('fs');
@@ -17,7 +17,9 @@ const shards = Array.from({ length: n }, () => []);
 langs.forEach((l, i) => shards[i % n].push(l));
 
 (async () => {
+  const only = process.env.ONLY_PODS ? process.env.ONLY_PODS.split(",").map(Number) : null; // e.g. ONLY_PODS=0,2
   for (const [i, p] of pods.entries()) {
+    if (only && !only.includes(i)) continue;
     const body = {
       imageName: `ghcr.io/igwe4life/ttsopensource-gpu:${tag}`,
       env: {

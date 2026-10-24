@@ -89,8 +89,10 @@ export function createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate, duckL
     let stderrTail = '';
     let lastAdvanceAt = Date.now() + 30000;
     let lastTime = '';
+    // Only enforced once ffmpeg has printed at least one progress line, so an unexpected log format can never
+    // cause a restart loop.
     const watchdog = setInterval(() => {
-      if (Date.now() - lastAdvanceAt > STALL_MS) {
+      if (lastTime && Date.now() - lastAdvanceAt > STALL_MS) {
         clearInterval(watchdog);
         console.warn(`[rtmpPusher:${rtmpUrl}] output stalled for ${Math.round((Date.now() - lastAdvanceAt) / 1000)}s; restarting`);
         proc.kill('SIGKILL');
@@ -100,7 +102,7 @@ export function createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate, duckL
     proc.stderr.on('data', (d) => {
       const text = d.toString();
       stderrTail = (stderrTail + text).slice(-2000);
-      const m = [...text.matchAll(/time=(d+:d+:d+.d+)/g)].pop();
+      const m = [...text.matchAll(/time=(\d+:\d+:\d+\.\d+)/g)].pop();
       if (m && m[1] !== lastTime) { lastTime = m[1]; lastAdvanceAt = Date.now(); }
     });
 
