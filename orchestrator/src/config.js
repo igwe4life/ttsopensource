@@ -164,6 +164,7 @@ export const config = {
 
   // --- Audio mixing: how loud the original stays under the dub ───────────
   duckLevel: num('DUCK_LEVEL', 0.2),
+  dubGain: num('DUB_GAIN', 2.0), // net loudness of the dub vs the raw TTS level
 
   // --- HTTP server (monitoring endpoints only — no browser UI) ───────────
   http: {

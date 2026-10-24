@@ -71,7 +71,7 @@ export function runDubbingPipeline({ input, httpPort }) {
     for (let i = 0; i < pushLanguages.length && !stopped; i += BATCH) {
       for (const lang of pushLanguages.slice(i, i + BATCH)) {
         const rtmpUrl = `${config.rtmp.baseUrl.replace(/\/+$/, '')}/${config.rtmp.keyFor(lang)}`;
-        pushers.set(lang, createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate: config.mixSampleRate, duckLevel: config.duckLevel }));
+        pushers.set(lang, createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate: config.mixSampleRate, duckLevel: config.duckLevel, dubGain: config.dubGain }));
       }
       await new Promise((r) => setTimeout(r, 400));
     }

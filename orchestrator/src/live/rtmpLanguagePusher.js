@@ -25,13 +25,14 @@ function ffmpegBinary() {
  * @param {string} opts.rtmpUrl     e.g. rtmp://web.homestream.live/live/es
  * @param {number} opts.sampleRate  must match liveAudioMixer's sampleRate
  * @param {number} [opts.duckLevel] original-audio volume under the dub (0-1)
+ * @param {number} [opts.dubGain] net loudness multiplier for the dub (TTS voices are quiet; amix also halves each input)
  */
 // About 20 s of the 24 kHz mono 16-bit translated-audio pipe.
 const MAX_BUFFERED_BYTES = 1024 * 1024;
 
 const STALL_MS = 45000;
 
-export function createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate, duckLevel = 0.2 }) {
+export function createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate, duckLevel = 0.2, dubGain = 2.0 }) {
   const state = {
     process: null,
     stdin: null,
@@ -55,7 +56,8 @@ export function createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate, duckL
       '-f', 's16le', '-ar', String(sampleRate), '-ac', '1',
       '-i', 'pipe:0',
       '-filter_complex',
-      `[0:a]volume=${duckLevel.toFixed(2)}[orig];[1:a]volume=1.0[dub];[orig][dub]amix=inputs=2:duration=first:dropout_transition=0[aout]`,
+      // amix scales every input by 1/2, so both volumes are doubled to get the intended net levels; alimiter stops clipping.
+      `[0:a]volume=${(duckLevel * 2 * dubGain).toFixed(2)}[orig];[1:a]volume=${(2 * dubGain).toFixed(2)}[dub];[orig][dub]amix=inputs=2:duration=first:dropout_transition=0,alimiter=limit=0.9[aout]`,
       '-map', '0:v',
       '-map', '[aout]',
       '-c:v', 'copy',
