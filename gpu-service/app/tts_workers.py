@@ -71,6 +71,7 @@ def worker_index(lang: str, assignment: dict[str, int], n: int) -> int:
 def worker_main(idx: int, in_q, out_q, languages: list[str]) -> None:
     """Entry point of one worker process (started with the 'spawn' method)."""
     # Each process would otherwise start torch/OpenMP threads for every core.
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")  # before torch is imported
     os.environ.setdefault("OMP_NUM_THREADS", "2")
     os.environ.setdefault("MKL_NUM_THREADS", "2")
     logging.basicConfig(level=logging.INFO, format=f"%(asctime)s %(levelname)s tts-worker-{idx}: %(message)s")
@@ -81,6 +82,17 @@ def worker_main(idx: int, in_q, out_q, languages: list[str]) -> None:
             out_q.put(("fatal", idx, f"{type(e).__name__}: {e}"[:300]))
         finally:
             raise
+
+
+def _trim_gpu_cache() -> None:
+    """Hand cached-but-unused GPU memory back so it cannot creep up over hours."""
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _worker_loop(idx: int, in_q, out_q, languages: list[str]) -> None:
@@ -118,11 +130,15 @@ def _worker_loop(idx: int, in_q, out_q, languages: list[str]) -> None:
     out_q.put(("ready", idx, engines["piper"].info().get("voices", {})))
     log_.info("worker %d ready: %d languages, %d failed", idx, total, len(failed))
 
+    jobs_done = 0
     while True:
         msg = in_q.get()
         if msg is None or msg[0] == "stop":
             break
         _kind, job_id, lang, text = msg
+        jobs_done += 1
+        if jobs_done % 20 == 0:
+            _trim_gpu_cache()
         try:
             entry = registry.get(lang)
             if entry is None or entry.tts_engine not in engines:

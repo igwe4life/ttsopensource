@@ -1,5 +1,7 @@
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+
+const STALE_MS = 45000;
 import path from 'node:path';
 
 function ffmpegBinary() {
@@ -81,6 +83,19 @@ export function createSourceRelay({ sourceUrl, dir }) {
     }, backoff);
   }
 
+  // Watchdog: if the rolling playlist stops being rewritten the relay's ffmpeg is wedged (e.g. the source
+  // stream restarted underneath it). Kill it so the exit handler restarts it.
+  const watchdog = setInterval(() => {
+    if (state.closed || !state.process) return;
+    try {
+      const age = Date.now() - statSync(playlist).mtimeMs;
+      if (age > STALE_MS) {
+        console.warn(`[relay] playlist not updated for ${Math.round(age / 1000)}s; restarting relay ffmpeg`);
+        state.process.kill('SIGKILL');
+      }
+    } catch { /* playlist not written yet */ }
+  }, 10000);
+
   start();
 
   return {
@@ -103,6 +118,7 @@ export function createSourceRelay({ sourceUrl, dir }) {
       });
     },
     stop() {
+      clearInterval(watchdog);
       state.closed = true;
       state.process?.kill('SIGTERM');
     },

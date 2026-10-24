@@ -30,6 +30,8 @@ function ffmpegBinary() {
  * @param {(err: Error) => void} [onError] called on a restart-worthy failure
  * @returns {{ stop: () => void }}
  */
+const STALL_MS = 30000;
+
 export function captureAudio(hlsUrl, onData, onError = () => {}) {
   let stopped = false;
   let attempt = 0;
@@ -71,7 +73,18 @@ export function captureAudio(hlsUrl, onData, onError = () => {}) {
     // event and crashes the whole process. Found via live testing.
     child.on('error', (err) => restart(`ffmpeg capture failed to start: ${err.message}`));
 
-    child.stdout?.on('data', onData);
+    // Watchdog: a capture ffmpeg can go quiet without exiting (seen live: after the source stream
+    // restarted, no audio arrived for hours while everything still looked "connected" and no chunk
+    // was ever processed). If no audio arrives for STALL_MS, kill it; the exit handler restarts it.
+    let lastDataAt = Date.now();
+    const watchdog = setInterval(() => {
+      if (Date.now() - lastDataAt > STALL_MS) {
+        clearInterval(watchdog);
+        console.warn(`[capture] no audio from the source for ${Math.round((Date.now() - lastDataAt) / 1000)}s; restarting capture`);
+        child?.kill('SIGKILL');
+      }
+    }, 5000);
+    child.stdout?.on('data', (buf) => { lastDataAt = Date.now(); onData(buf); });
 
     let stderrTail = '';
     child.stderr?.on('data', (buf) => {
@@ -79,6 +92,7 @@ export function captureAudio(hlsUrl, onData, onError = () => {}) {
     });
 
     child.on('exit', (code, signal) => {
+      clearInterval(watchdog);
       restart(`ffmpeg capture exited (code=${code} signal=${signal}); stderr tail: ${stderrTail.slice(-300)}`);
     });
   }

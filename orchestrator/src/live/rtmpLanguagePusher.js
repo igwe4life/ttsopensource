@@ -29,6 +29,8 @@ function ffmpegBinary() {
 // About 20 s of the 24 kHz mono 16-bit translated-audio pipe.
 const MAX_BUFFERED_BYTES = 1024 * 1024;
 
+const STALL_MS = 45000;
+
 export function createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate, duckLevel = 0.2 }) {
   const state = {
     process: null,
@@ -79,9 +81,25 @@ export function createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate, duckL
       console.warn(`[rtmpPusher:${rtmpUrl}] stdin error (ignored, will reconnect): ${err.code || err.message}`);
     });
 
+    // Watchdog: ffmpeg prints "time=HH:MM:SS.xx" progress. If the output clock stops advancing for STALL_MS
+    // the process is wedged (blocked input or a dead RTMP connection that never errors) and viewers see a frozen
+    // stream; kill it so it is restarted. A grace period covers startup.
     let stderrTail = '';
+    let lastAdvanceAt = Date.now() + 30000;
+    let lastTime = '';
+    const watchdog = setInterval(() => {
+      if (Date.now() - lastAdvanceAt > STALL_MS) {
+        clearInterval(watchdog);
+        console.warn(`[rtmpPusher:${rtmpUrl}] output stalled for ${Math.round((Date.now() - lastAdvanceAt) / 1000)}s; restarting`);
+        proc.kill('SIGKILL');
+      }
+    }, 5000);
+    proc.on('close', () => clearInterval(watchdog));
     proc.stderr.on('data', (d) => {
-      stderrTail = (stderrTail + d.toString()).slice(-2000);
+      const text = d.toString();
+      stderrTail = (stderrTail + text).slice(-2000);
+      const m = [...text.matchAll(/time=(d+:d+:d+.d+)/g)].pop();
+      if (m && m[1] !== lastTime) { lastTime = m[1]; lastAdvanceAt = Date.now(); }
     });
 
     // Covers a spawn-level failure (e.g. missing ffmpeg binary) — 'exit'

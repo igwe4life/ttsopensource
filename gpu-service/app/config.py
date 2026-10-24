@@ -9,6 +9,10 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# Must be set before torch is first imported: expandable segments avoid the allocator fragmentation that made
+# free GPU memory shrink from ~6 GB to ~0 over ~24 h (every request then failed with CUDA out-of-memory).
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+
 
 def _bool(key: str, default: bool) -> bool:
     v = os.environ.get(key)

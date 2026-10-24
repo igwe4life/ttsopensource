@@ -69,6 +69,7 @@ async def handle_stream(websocket: WebSocket) -> None:
                 continue
             finally:
                 seg_path.unlink(missing_ok=True)
+                _trim_gpu_cache()
 
             for lang, lang_result in result.languages.items():
                 payload = {
@@ -95,6 +96,17 @@ async def handle_stream(websocket: WebSocket) -> None:
         for f in tmp_dir.glob("*"):
             f.unlink(missing_ok=True)
         tmp_dir.rmdir()
+
+
+def _trim_gpu_cache() -> None:
+    """Return cached GPU memory after each chunk (cheap) so free VRAM does not shrink over a day."""
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:  # noqa: BLE001
+        pass
 
 
 async def _send_error(websocket: WebSocket, seq, message: str) -> None:

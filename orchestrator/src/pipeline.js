@@ -88,6 +88,7 @@ export function runDubbingPipeline({ input, httpPort }) {
 
   let seq = 0;
   let connected = false;
+  let lastPcmAt = 0; // when audio last arrived from the source (status() reports staleness)
   // Bounded queue: if chunks arrive faster than the GPU pods can process
   // them, drop the OLDEST queued chunk rather than let latency grow without bound.
   const MAX_QUEUE_DEPTH = 2;
@@ -176,6 +177,7 @@ export function runDubbingPipeline({ input, httpPort }) {
     input,
     (pcm) => {
       connected = true;
+      lastPcmAt = Date.now();
       const wavChunks = chunker.push(pcm);
       for (const wav of wavChunks) {
         if (pendingQueue.length >= MAX_QUEUE_DEPTH) {
@@ -211,7 +213,9 @@ export function runDubbingPipeline({ input, httpPort }) {
         })
       );
       return {
-        connected,
+        // true only while source audio is actually arriving (a wedged capture used to read "connected")
+        connected: connected && Date.now() - lastPcmAt < 30000,
+        audioAgeSec: lastPcmAt ? Math.round((Date.now() - lastPcmAt) / 1000) : null,
         source: input,
         queueDepth: pendingQueue.length,
         gpuConnected: clients.every((c) => c.connected),
