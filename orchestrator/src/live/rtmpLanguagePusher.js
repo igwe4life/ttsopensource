@@ -42,6 +42,8 @@ export function createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate, duckL
     closed: false,
     reconnecting: false,
     reconnectAttempts: 0,
+    exits: 0,
+    lastExit: null, // why the last ffmpeg ended (exposed through status so it can be diagnosed remotely)
   };
 
   function start() {
@@ -117,6 +119,8 @@ export function createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate, duckL
       state.process = null;
       state.stdin = null;
       if (state.closed) return;
+      state.exits += 1;
+      state.lastExit = { code, signal, ranSec: Math.round((Date.now() - startedAt) / 1000), tail: stderrTail.replace(/\s+/g, ' ').slice(-220) };
       console.warn(`[rtmpPusher:${rtmpUrl}] ffmpeg exited (code=${code} signal=${signal}); stderr tail: ${stderrTail.slice(-300)}`);
       scheduleReconnect(startedAt);
     });
@@ -186,6 +190,12 @@ export function createRtmpLanguagePusher({ sourceUrl, rtmpUrl, sampleRate, duckL
     },
     get droppedBytes() {
       return state.droppedBytes;
+    },
+    get exits() {
+      return state.exits;
+    },
+    get lastExit() {
+      return state.lastExit;
     },
     get reconnecting() {
       return state.reconnecting;
