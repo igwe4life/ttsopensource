@@ -29,7 +29,7 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.engines.base import TranscriptSegment, UnsupportedLanguageError
-from app import preload
+from app import gpu_guard, preload
 from app.pipeline.process_pipeline import process_segment
 from app.registry.language_registry import registry
 from app.routing import model_router
@@ -51,6 +51,8 @@ def require_api_key(x_api_key: Optional[str] = Header(default=None)) -> None:
 async def _startup() -> None:
     await model_router.startup()
     asyncio.create_task(_idle_eviction_loop())
+    if settings.device == "cuda":
+        asyncio.create_task(gpu_guard.run_guard(_free_vram_gb))
     if settings.preload_languages:
         asyncio.create_task(preload.run(list(settings.preload_languages)))
 
@@ -59,6 +61,17 @@ async def _startup() -> None:
 async def _shutdown() -> None:
     if model_router.tts_worker_pool is not None:
         model_router.tts_worker_pool.stop()
+
+
+def _free_vram_gb():
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            return round(torch.cuda.mem_get_info(settings.gpu_id)[0] / 1e9, 2)
+    except Exception:  # noqa: BLE001
+        pass
+    return None
 
 
 async def _idle_eviction_loop() -> None:
@@ -121,7 +134,7 @@ async def health():
             gpu_info["vram_total_gb"] = round(total / 1e9, 2)
     except ImportError:
         gpu_info["cuda_available"] = None
-    return {"status": "ok", "gpu": gpu_info, "models": model_router.status(), "preload": preload.status()}
+    return {"status": "ok", "gpu": gpu_info, "models": model_router.status(), "preload": preload.status(), "guard": gpu_guard.status()}
 
 
 @app.get("/models")

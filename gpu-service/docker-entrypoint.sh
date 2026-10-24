@@ -42,5 +42,18 @@ fetch_voice es_ES-sharvard-medium es/es_ES/sharvard/medium
 fetch_voice fr_FR-siwis-medium    fr/fr_FR/siwis/medium
 fetch_voice de_DE-thorsten-medium de/de_DE/thorsten/medium
 
-echo "[entrypoint] starting uvicorn"
-exec python3.11 -m uvicorn app.main:app --host "${HOST:-0.0.0.0}" --port "${PORT:-8000}"
+# Run uvicorn in a loop: the GPU guard (app/gpu_guard.py) exits the process on purpose when GPU memory is
+# exhausted or the planned uptime is reached, and this relaunches it. A SIGTERM from the container runtime
+# is forwarded and ends the loop.
+set +e
+while true; do
+  echo "[entrypoint] starting uvicorn"
+  python3.11 -m uvicorn app.main:app --host "${HOST:-0.0.0.0}" --port "${PORT:-8000}" &
+  pid=$!
+  trap 'kill -TERM $pid 2>/dev/null; wait $pid; exit 0' TERM INT
+  wait $pid
+  code=$?
+  trap - TERM INT
+  echo "[entrypoint] uvicorn exited with code $code; restarting in 2s"
+  sleep 2
+done

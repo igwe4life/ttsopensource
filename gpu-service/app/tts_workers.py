@@ -95,6 +95,17 @@ def _trim_gpu_cache() -> None:
         pass
 
 
+def _report_mem(out_q, idx: int) -> None:
+    """Tell the parent how much GPU memory this worker's torch holds (for the /health memory breakdown)."""
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            out_q.put(("mem", idx, {"torch_reserved_mb": round(torch.cuda.memory_reserved() / 1e6), "torch_allocated_mb": round(torch.cuda.memory_allocated() / 1e6)}))
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def _worker_loop(idx: int, in_q, out_q, languages: list[str]) -> None:
     from app.engines.tts.mms_tts_engine import MMSTTSEngine
     from app.engines.tts.piper_engine import PiperEngine
@@ -128,6 +139,7 @@ def _worker_loop(idx: int, in_q, out_q, languages: list[str]) -> None:
             failed[lang] = f"{type(e).__name__}: {e}"[:200]
         out_q.put(("progress", idx, done, total, dict(failed)))
     out_q.put(("ready", idx, engines["piper"].info().get("voices", {})))
+    _report_mem(out_q, idx)
     log_.info("worker %d ready: %d languages, %d failed", idx, total, len(failed))
 
     jobs_done = 0
@@ -139,6 +151,8 @@ def _worker_loop(idx: int, in_q, out_q, languages: list[str]) -> None:
         jobs_done += 1
         if jobs_done % 20 == 0:
             _trim_gpu_cache()
+        if jobs_done % 200 == 0:
+            _report_mem(out_q, idx)
         try:
             entry = registry.get(lang)
             if entry is None or entry.tts_engine not in engines:
@@ -212,6 +226,8 @@ class TTSWorkerPool:
         elif kind == "ready":
             st = self._state[i]
             st.update(ready=True, piper_voices=msg[2])
+        elif kind == "mem":
+            self._state[i]["mem"] = msg[2]
         elif kind == "fatal":
             self._state[i]["fatal"] = msg[2]
             log.error("TTS worker %d died: %s", i, msg[2])
@@ -289,7 +305,7 @@ class TTSWorkerPool:
             workers.append({
                 "index": i, "alive": bool(proc and proc.is_alive()), "languages": len(self._shard(i)),
                 "done": st["done"], "total": st["total"], "ready": st["ready"], "failed": dict(st["failed"]),
-                "restarts": st["restarts"], "fatal": st["fatal"],
+                "restarts": st["restarts"], "fatal": st["fatal"], "torch_mem": st.get("mem"),
                 "piper_on_cpu": sorted(v for v, p in st["piper_voices"].items() if "CUDAExecutionProvider" not in p),
             })
         return {"processes": self.n, "ready": all(w["ready"] for w in workers), "workers": workers}
