@@ -100,6 +100,11 @@ export const config = {
   sourceRelay: {
     enabled: process.env.SOURCE_RELAY === 'true',
     dir: process.env.RELAY_DIR || path.join(os.tmpdir(), 'ttsopensource-relay'),
+    // 'copy' (default) passes the source video through untouched. A height such as '720' (or '720p') re-encodes
+    // it ONCE here, so every language's pusher (which copies video) sends the smaller picture; this cuts the
+    // bandwidth into the RTMP server roughly in half at 720p. RELAY_VIDEO_KBPS is the target video bitrate.
+    video: process.env.RELAY_VIDEO || 'copy',
+    videoKbps: num('RELAY_VIDEO_KBPS', 1200),
   },
 
   // --- Continuous audio chunking ────────────────────────────────────────

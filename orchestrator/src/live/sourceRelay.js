@@ -28,7 +28,19 @@ function ffmpegBinary() {
  * @param {string} opts.sourceUrl  live HLS source
  * @param {string} opts.dir        local directory for the rolling playlist/segments
  */
-export function createSourceRelay({ sourceUrl, dir }) {
+export function createSourceRelay({ sourceUrl, dir, video = 'copy', videoKbps = 1200 }) {
+  // Video handling: 'copy' or a target height ('720', '720p', '480' ...) that is re-encoded once for all pushers.
+  const height = Number((String(video).match(/^(\d{3,4})p?$/) || [])[1]) || 0;
+  const videoArgs = height
+    ? [
+        '-c:v', 'libx264', '-preset', 'veryfast', '-threads', '3', '-profile:v', 'main', '-pix_fmt', 'yuv420p',
+        '-vf', `scale=-2:${height}`,
+        '-b:v', `${videoKbps}k`, '-maxrate', `${Math.round(videoKbps * 1.2)}k`, '-bufsize', `${videoKbps * 2}k`,
+        // a keyframe at every segment boundary (hls_time 2) so segments are independently decodable
+        '-force_key_frames', 'expr:gte(t,n_forced*2)', '-sc_threshold', '0',
+        '-c:a', 'copy',
+      ]
+    : ['-c', 'copy'];
   const playlist = path.join(dir, 'live.m3u8');
   const state = { process: null, closed: false, reconnectAttempts: 0, reconnecting: false };
 
@@ -46,7 +58,7 @@ export function createSourceRelay({ sourceUrl, dir }) {
         '-hide_banner', '-loglevel', 'warning',
         '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '4',
         '-i', sourceUrl,
-        '-c', 'copy',
+        ...videoArgs,
         '-f', 'hls',
         '-hls_time', '2',
         '-hls_list_size', '10',

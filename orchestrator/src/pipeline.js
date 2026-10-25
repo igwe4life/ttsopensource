@@ -61,7 +61,7 @@ export function runDubbingPipeline({ input, httpPort }) {
 
   // ── One persistent RTMP pusher per language. Started in small batches so
   // ~100 ffmpeg processes do not all spin up (and hit the RTMP server) at once. ──
-  const relay = config.sourceRelay.enabled ? createSourceRelay({ sourceUrl: input, dir: config.sourceRelay.dir }) : null;
+  const relay = config.sourceRelay.enabled ? createSourceRelay({ sourceUrl: input, dir: config.sourceRelay.dir, video: config.sourceRelay.video, videoKbps: config.sourceRelay.videoKbps }) : null;
   let stopped = false;
   // Only these languages get an RTMP pusher (see PUSH_LANGUAGES); the rest are still processed.
   const pushSet = new Set(config.rtmp.pushLanguages.length ? config.rtmp.pushLanguages : languages);
